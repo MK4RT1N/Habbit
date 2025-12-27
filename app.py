@@ -332,6 +332,11 @@ def manage():
 def friends_page():
     return render_template('friends.html')
 
+@app.route('/settings')
+@login_required
+def settings():
+    return render_template('settings.html')
+
 @app.route('/achievements')
 @login_required
 def achievements_page():

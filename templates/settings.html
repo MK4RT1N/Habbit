@@ -1,0 +1,148 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="flex flex-col min-h-screen w-full max-w-2xl mx-auto py-8 px-6">
+
+    <div class="mb-12">
+        <h1 class="text-4xl font-black text-white mb-2">Einstellungen</h1>
+        <p class="text-white/50 font-medium">Verwalte dein Profil und deine App-Präferenzen</p>
+    </div>
+
+    <!-- User Profile Section -->
+    <section class="mb-10 animate-fade-in-up" style="animation-delay: 0.1s;">
+        <h2 class="text-sm font-black text-white/40 uppercase tracking-[0.2em] mb-6 pl-2">Mein Profil</h2>
+        <div class="bg-[#1a2e22] border border-white/5 rounded-[2rem] p-6 shadow-xl relative overflow-hidden group">
+            <div
+                class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+            </div>
+
+            <div class="relative z-10 flex items-center gap-6">
+                <div class="size-20 rounded-2xl border-2 border-primary bg-cover bg-center shadow-[0_0_20px_rgba(19,236,91,0.2)]"
+                    style='background-image: url("https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=2680&auto=format&fit=crop");'>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-2xl font-bold text-white mb-1">{{ current_user.username }}</h3>
+                    <p class="text-primary font-bold text-xs uppercase tracking-wider">Level 12 Habit Master</p>
+                </div>
+                <button
+                    class="bg-white/5 hover:bg-white/10 text-white p-3 rounded-xl transition-all active:scale-95 border border-white/5">
+                    <span class="material-symbols-outlined">edit</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- App Preferences -->
+    <section class="mb-10 animate-fade-in-up" style="animation-delay: 0.2s;">
+        <h2 class="text-sm font-black text-white/40 uppercase tracking-[0.2em] mb-6 pl-2">App Einstellungen</h2>
+        <div class="space-y-4">
+
+            <!-- Dark Mode Toggle (Mock) -->
+            <div
+                class="bg-[#1a2e22] border border-white/5 rounded-2xl p-5 flex items-center justify-between hover:border-white/10 transition-colors">
+                <div class="flex items-center gap-4">
+                    <div class="size-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+                        <span class="material-symbols-outlined">dark_mode</span>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white">Dark Mode</h4>
+                        <p class="text-xs text-white/40 font-medium">Immer aktiv</p>
+                    </div>
+                </div>
+                <div class="w-12 h-6 rounded-full bg-primary/20 relative cursor-pointer">
+                    <div class="absolute right-1 top-1 size-4 rounded-full bg-primary shadow-sm"></div>
+                </div>
+            </div>
+
+            <!-- Notifications (Mock) -->
+            <div
+                class="bg-[#1a2e22] border border-white/5 rounded-2xl p-5 flex items-center justify-between hover:border-white/10 transition-colors">
+                <div class="flex items-center gap-4">
+                    <div class="size-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
+                        <span class="material-symbols-outlined">notifications</span>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white">Benachrichtigungen</h4>
+                        <p class="text-xs text-white/40 font-medium">Tägliche Erinnerungen</p>
+                    </div>
+                </div>
+                <div
+                    class="w-12 h-6 rounded-full bg-white/10 relative cursor-pointer hover:bg-white/20 transition-colors">
+                    <div class="absolute left-1 top-1 size-4 rounded-full bg-white/40 shadow-sm"></div>
+                </div>
+            </div>
+
+            <!-- Language (Mock) -->
+            <div
+                class="bg-[#1a2e22] border border-white/5 rounded-2xl p-5 flex items-center justify-between hover:border-white/10 transition-colors">
+                <div class="flex items-center gap-4">
+                    <div class="size-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-400">
+                        <span class="material-symbols-outlined">translate</span>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white">Sprache</h4>
+                        <p class="text-xs text-white/40 font-medium">Deutsch</p>
+                    </div>
+                </div>
+                <span class="material-symbols-outlined text-white/20">chevron_right</span>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Support & Info -->
+    <section class="mb-10 animate-fade-in-up" style="animation-delay: 0.3s;">
+        <h2 class="text-sm font-black text-white/40 uppercase tracking-[0.2em] mb-6 pl-2">System</h2>
+        <div class="bg-[#1a2e22] border border-white/5 rounded-3xl overflow-hidden divide-y divide-white/5">
+
+            <a href="#" class="flex items-center justify-between p-5 hover:bg-white/5 transition-colors group">
+                <span class="font-bold text-white group-hover:text-primary transition-colors">Hilfe & Support</span>
+                <span
+                    class="material-symbols-outlined text-white/20 group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            </a>
+            <a href="#" class="flex items-center justify-between p-5 hover:bg-white/5 transition-colors group">
+                <span class="font-bold text-white group-hover:text-primary transition-colors">Datenschutz</span>
+                <span
+                    class="material-symbols-outlined text-white/20 group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            </a>
+
+            <div class="p-5 flex items-center justify-between">
+                <span class="font-bold text-white/50">Version</span>
+                <span class="font-mono text-xs bg-white/5 px-2 py-1 rounded text-primary">{{ version }}</span>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Logout Area -->
+    <div class="mt-auto pt-8 animate-fade-in-up" style="animation-delay: 0.4s;">
+        <a href="{{ url_for('logout') }}"
+            class="w-full group bg-red-500/10 border border-red-500/20 p-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-red-500/20 active:scale-[0.98] transition-all">
+            <span
+                class="material-symbols-outlined text-red-500 group-hover:scale-110 transition-transform">logout</span>
+            <span class="font-black text-red-500 uppercase tracking-widest text-sm">Abmelden</span>
+        </a>
+        <p class="text-center text-white/20 text-xs mt-6 font-medium">HabitFlow &copy; 2025</p>
+    </div>
+
+</div>
+
+<style>
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in-up {
+        animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+    }
+</style>
+{% endblock %}
