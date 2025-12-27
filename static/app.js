@@ -1,6 +1,7 @@
 // State Management backed by API
 let state = {
     habits: [],
+    tasks: [],
     streak: 0
 };
 let lastServerStateJson = "";
@@ -65,6 +66,32 @@ function render() {
             habitList.appendChild(div);
         });
     }
+
+    const taskList = getEl('task-list');
+    if (taskList) {
+        taskList.innerHTML = '';
+        if (state.tasks) {
+            state.tasks.forEach((task, index) => {
+                const div = document.createElement('div');
+                const isCompleted = task.completed;
+                let tagHtml = '';
+                if (task.tag) tagHtml = `<span style="font-size: 0.7rem; color: #ff9800; border: 1px solid #ff9800; padding: 2px 4px; border-radius: 4px; margin-left: 5px;">${task.tag}</span>`;
+
+                div.className = `habit-item ${isCompleted ? 'completed' : ''}`;
+                div.style.borderLeft = isCompleted ? '4px solid var(--success-color)' : '4px solid var(--secondary-color)';
+
+                div.innerHTML = `
+                    <div class="habit-content" style="flex-grow: 1;">
+                         <span class="habit-text">${task.text} ${tagHtml}</span>
+                    </div>
+                    <div class="checkbox" onclick="toggleTask(${index})">
+                         <span class="check-icon" style="${isCompleted ? 'opacity: 1; transform: scale(1);' : ''}">${isCompleted ? '✓' : ''}</span>
+                    </div>
+                `;
+                taskList.appendChild(div);
+            });
+        }
+    }
 }
 
 async function syncState(isPolling = false) {
@@ -125,6 +152,14 @@ async function toggleHabit(index) {
     if (!success) {
         syncState();
     }
+}
+
+async function toggleTask(index) {
+    const task = state.tasks[index];
+    task.completed = !task.completed;
+    render();
+    const success = await apiCallWithSync('toggle_task', { id: task.id });
+    if (!success) syncState();
 }
 
 // --- Modals & New Features ---
@@ -220,6 +255,20 @@ async function submitNewHabit() {
     }
 }
 
+async function submitNewTask() {
+    const input = getEl('new-task-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = ''; // clear immediately
+    const success = await apiCallWithSync('add_task', { text });
+    if (!success) alert('Fehler');
+}
+
+function handleTaskKey(e) {
+    if (e.key === 'Enter') submitNewTask();
+}
+
 async function showHabitDetails(id) {
     getEl('habit-details-modal').style.display = 'flex';
     try {
@@ -262,6 +311,9 @@ window.toggleDay = toggleDay;
 window.submitNewHabit = submitNewHabit;
 window.showHabitDetails = showHabitDetails;
 window.closeDetails = closeDetails;
+window.submitNewTask = submitNewTask;
+window.handleTaskKey = handleTaskKey;
+window.toggleTask = toggleTask;
 
 // Modal Close logic
 window.onclick = function (event) {

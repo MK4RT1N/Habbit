@@ -11,10 +11,26 @@
 </div>
 
 <div class="modules">
+    <!-- Tasks Section -->
+    <div class="card" style="margin-bottom: 1rem; border-left: 4px solid var(--secondary-color);">
+        <div class="card-header">
+            <span class="card-title">📝 Tages-Aufgaben</span>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; padding: 0 1rem;">
+            <input type="text" id="new-task-input" placeholder="+ Aufgabe (z.B. Wäsche)"
+                style="flex-grow: 1; padding: 0.8rem; border-radius: 8px; border: none; background: rgba(0,0,0,0.2); color: white;"
+                onkeypress="handleTaskKey(event)">
+            <button class="btn" style="min-width: 40px;" onclick="submitNewTask()">OK</button>
+        </div>
+
+        <div class="habit-list" id="task-list"></div>
+    </div>
+
     <!-- Habits Section -->
     <div class="card">
         <div class="card-header">
-            <span class="card-title">✅ Daily Tasks</span>
+            <span class="card-title">✅ Daily Habits</span>
             <!-- New Add Button triggers Modal -->
             <button class="btn btn-secondary" onclick="openAddHabitModal()" style="padding: 0.5rem;">
                 <span>+ Neu</span>
@@ -141,8 +157,9 @@
 <script>
     const INITIAL_STATE = {
         habits: {{ habits | tojson }},
+    tasks: { { tasks | tojson } },
     streak: { { streak } }
-        };
+    };
 </script>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 {% endblock %}

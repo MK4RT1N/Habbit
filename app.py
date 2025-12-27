@@ -64,6 +64,14 @@ class HabitLog(db.Model):
     value = db.Column(db.Integer, default=0) 
     completed = db.Column(db.Boolean, default=False)
 
+class Task(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.String(200), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_date = db.Column(db.Date, default=date.today)
+    completed = db.Column(db.Boolean, default=False)
+    completed_date = db.Column(db.Date, nullable=True)
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -119,8 +127,42 @@ def compute_user_state(user):
             'shared_info': shared_info
         })
         
+    # --- Task Logic ---
+    tasks_query = Task.query.filter_by(user_id=user.id).all()
+    task_data = []
+    
+    for t in tasks_query:
+        # Expiration Logic
+        # 1. If completed, show ONLY if completed_date == today (delete at midnight logic)
+        if t.completed:
+            if t.completed_date != today:
+                continue # Hide (effectively deleted from view, generic cleanup can handle DB later)
+        
+        # 2. If NOT completed, show if created_date >= today - 3 days
+        else:
+            delta = (today - t.created_date).days
+            if delta > 3:
+                continue # Expired
+        
+        # Determine label (e.g. "Yesterday")
+        tag = ""
+        days_old = (today - t.created_date).days
+        if not t.completed and days_old == 1: tag = "Gestern"
+        elif not t.completed and days_old > 1: tag = f"Vor {days_old} Tagen"
+        
+        task_data.append({
+            'id': t.id,
+            'text': t.text,
+            'completed': t.completed,
+            'tag': tag
+        })
+    
+    # Sort tasks: Uncompleted first, then by date desc
+    task_data.sort(key=lambda x: (x['completed'], x['id']))
+
     return {
         'habits': habit_data,
+        'tasks': task_data,
         'streak': user.current_streak
     }
 
@@ -133,7 +175,7 @@ def check_group_streak_logic(shared_id):
 @login_required
 def index():
     data = compute_user_state(current_user)
-    return render_template('index.html', user=current_user, habits=data['habits'], streak=data['streak'])
+    return render_template('index.html', user=current_user, habits=data['habits'], tasks=data['tasks'], streak=data['streak'])
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -224,6 +266,21 @@ def add_habit():
         logger.error(f"Add habit error: {e}")
         return jsonify({'success': False})
 
+@app.route('/api/add_task', methods=['POST'])
+@login_required
+def add_task():
+    try:
+        data = request.json
+        text = data.get('text')
+        if not text: return jsonify({'success': False})
+        
+        t = Task(text=text, user_id=current_user.id)
+        db.session.add(t)
+        db.session.commit()
+        return jsonify({'success': True})
+    except:
+        return jsonify({'success': False})
+
 @app.route('/api/toggle_habit', methods=['POST'])
 @login_required
 def toggle_habit():
@@ -279,7 +336,27 @@ def toggle_habit():
             
         return jsonify({'success': True})
     except Exception as e:
-        print(e)
+        logger.error(f"Add habit error: {e}")
+        return jsonify({'success': False})
+
+@app.route('/api/toggle_task', methods=['POST'])
+@login_required
+def toggle_task():
+    try:
+        data = request.json
+        tid = data.get('id')
+        task = Task.query.get(tid)
+        if task.user_id != current_user.id: return jsonify({'success': False})
+        
+        task.completed = not task.completed
+        if task.completed:
+            task.completed_date = date.today()
+        else:
+            task.completed_date = None
+            
+        db.session.commit()
+        return jsonify({'success': True})
+    except:
         return jsonify({'success': False})
 
 # --- Friend API ---
