@@ -18,6 +18,10 @@
         </div>
 
         <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; padding: 0 1rem;">
+            <select id="new-task-date"
+                style="padding: 0.8rem; border-radius: 8px; border: none; background: rgba(0,0,0,0.2); color: white; max-width: 120px;">
+                <!-- Populated by JS -->
+            </select>
             <input type="text" id="new-task-input" placeholder="+ Aufgabe (z.B. Wäsche)"
                 style="flex-grow: 1; padding: 0.8rem; border-radius: 8px; border: none; background: rgba(0,0,0,0.2); color: white;"
                 onkeypress="handleTaskKey(event)">

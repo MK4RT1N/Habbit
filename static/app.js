@@ -33,7 +33,32 @@ document.addEventListener('DOMContentLoaded', () => {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js');
     }
+
+    populateTaskDates();
 });
+
+function populateTaskDates() {
+    const sel = getEl('new-task-date');
+    if (!sel) return;
+    sel.innerHTML = '';
+
+    const days = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+
+    for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() + i);
+
+        let label = "";
+        if (i === 0) label = "Heute";
+        else if (i === 1) label = "Morgen";
+        else label = days[d.getDay()] + ` ${d.getDate()}.${d.getMonth() + 1}.`;
+
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.innerText = label;
+        sel.appendChild(opt);
+    }
+}
 
 function render() {
     const streakCount = getEl('streak-count');
@@ -257,11 +282,14 @@ async function submitNewHabit() {
 
 async function submitNewTask() {
     const input = getEl('new-task-input');
+    const sel = getEl('new-task-date');
     const text = input.value.trim();
+    const offset = sel ? parseInt(sel.value) : 0;
+
     if (!text) return;
 
     input.value = ''; // clear immediately
-    const success = await apiCallWithSync('add_task', { text });
+    const success = await apiCallWithSync('add_task', { text, offset });
     if (!success) alert('Fehler');
 }
 

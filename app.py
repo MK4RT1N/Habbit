@@ -69,6 +69,7 @@ class Task(db.Model):
     text = db.Column(db.String(200), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_date = db.Column(db.Date, default=date.today)
+    scheduled_date = db.Column(db.Date, default=date.today)
     completed = db.Column(db.Boolean, default=False)
     completed_date = db.Column(db.Date, nullable=True)
 
@@ -138,17 +139,30 @@ def compute_user_state(user):
             if t.completed_date != today:
                 continue # Hide (effectively deleted from view, generic cleanup can handle DB later)
         
-        # 2. If NOT completed, show if created_date >= today - 3 days
-        else:
-            delta = (today - t.created_date).days
+        # 2. If NOT completed:
+        #    - Show if scheduled_date == today
+        #    - Show if scheduled_date < today AND created_date >= today - 3 days (Overdue logic)
+        #    - Hide if scheduled_date > today
+        
+        s_date = t.scheduled_date if t.scheduled_date else t.created_date
+
+        if not t.completed:
+            if s_date > today: 
+                continue # Future task
+            
+            # If overdue, check if it's too old (3 days from scheduled date)
+            delta = (today - s_date).days
             if delta > 3:
-                continue # Expired
+                continue # Expired/Delete
         
         # Determine label (e.g. "Yesterday")
         tag = ""
-        days_old = (today - t.created_date).days
-        if not t.completed and days_old == 1: tag = "Gestern"
-        elif not t.completed and days_old > 1: tag = f"Vor {days_old} Tagen"
+        days_diff = (today - s_date).days
+        if not t.completed:
+            if days_diff == 1: tag = "Gestern"
+            elif days_diff > 1: tag = f"Vor {days_diff} Tagen"
+            elif days_diff == 0: tag = "Heute"
+            # Note: Future tasks are filtered out above, but if we wanted to show them later, we could add logic here.
         
         task_data.append({
             'id': t.id,
@@ -272,13 +286,18 @@ def add_task():
     try:
         data = request.json
         text = data.get('text')
+        date_offset = int(data.get('offset', 0)) # 0 = today, 1 = tomorrow ...
+        
         if not text: return jsonify({'success': False})
         
-        t = Task(text=text, user_id=current_user.id)
+        s_date = date.today() + timedelta(days=date_offset)
+        
+        t = Task(text=text, user_id=current_user.id, scheduled_date=s_date)
         db.session.add(t)
         db.session.commit()
         return jsonify({'success': True})
-    except:
+    except Exception as e:
+        logger.error(f"Task error: {e}")
         return jsonify({'success': False})
 
 @app.route('/api/toggle_habit', methods=['POST'])
@@ -486,4 +505,11 @@ def service_worker():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        # Auto-migration for scheduled_date if missing (SQLite specific hack for MVP)
+        try:
+            with db.engine.connect() as con:
+                con.execute(db.text("ALTER TABLE task ADD COLUMN scheduled_date DATE"))
+                print("Migrated task table")
+        except Exception as e:
+            pass # Column likely exists
     app.run(debug=True, host='0.0.0.0', port=5000)
