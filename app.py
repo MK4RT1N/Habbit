@@ -953,10 +953,12 @@ def sync_usage():
         return jsonify({"status": "error"})
 
 @app.route('/api/get_config', methods=['GET'])
-def get_config():
+@app.route('/api/get_config/<int:route_user_id>', methods=['GET'])
+def get_config(route_user_id=None):
     try:
         # Try to find user in multiple ways to be robus
-        user_id = request.args.get('user_id')
+        user_id = route_user_id # Priority 1: Path Param
+        if not user_id: user_id = request.args.get('user_id') # Priority 2: Query Param
         if not user_id: user_id = request.args.get('id')
         
         user = None
