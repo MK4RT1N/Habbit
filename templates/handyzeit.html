@@ -1,0 +1,160 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="space-y-8 animate-fade-in-up">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-black text-white tracking-tight uppercase">Handyzeit</h1>
+            <p class="text-gray-400">Kontrolliere deine Bildschirmzeit</p>
+        </div>
+        <div class="p-3 bg-surface-dark rounded-2xl border border-gray-800/50 shadow-soft">
+            <span class="material-symbols-outlined text-primary" style="font-size: 32px;">smartphone</span>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Usage Circle Card -->
+        <div
+            class="bg-surface-dark p-8 rounded-3xl border border-gray-800/50 shadow-2xl relative overflow-hidden group">
+            <div
+                class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+            </div>
+
+            <div class="flex flex-col items-center justify-center relative z-10">
+                <!-- Circular Progress -->
+                <div class="relative size-64">
+                    <svg class="size-full -rotate-90 transform" viewBox="0 0 100 100">
+                        <circle class="text-gray-800" stroke-width="8" stroke="currentColor" fill="transparent" r="40"
+                            cx="50" cy="50" />
+                        <circle
+                            class="{{ 'text-red-500' if usage > limit else 'text-primary' }} transition-all duration-1000 ease-out"
+                            stroke-width="8" stroke-dasharray="251.2"
+                            stroke-dashoffset="{{ 251.2 - (percentage / 100 * 251.2) }}" stroke-linecap="round"
+                            stroke="currentColor" fill="transparent" r="40" cx="50" cy="50" />
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-5xl font-black text-white tracking-widest">{{ usage // 60 }}<span
+                                class="text-xl text-gray-400 font-bold ml-1">h</span> {{ usage % 60 }}<span
+                                class="text-xl text-gray-400 font-bold ml-1">m</span></span>
+                        <span class="text-sm font-bold text-gray-500 mt-2 uppercase tracking-wider">von {{ limit // 60
+                            }}h {{ limit % 60 }}m</span>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex gap-4 w-full">
+                    <form action="{{ url_for('handyzeit') }}" method="POST" class="flex-1">
+                        <input type="hidden" name="action" value="add_time">
+                        <input type="hidden" name="minutes" value="15">
+                        <button type="submit"
+                            class="w-full py-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white font-bold transition-all active:scale-95 flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-lg">add</span>
+                            <span>15 Min</span>
+                        </button>
+                    </form>
+                    <form action="{{ url_for('handyzeit') }}" method="POST" class="flex-1">
+                        <input type="hidden" name="action" value="add_time">
+                        <input type="hidden" name="minutes" value="60">
+                        <button type="submit"
+                            class="w-full py-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white font-bold transition-all active:scale-95 flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-lg">add</span>
+                            <span>1 Std</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Settings & History -->
+        <div class="space-y-6">
+
+            <!-- Manual Entry / Settings -->
+            <div class="bg-surface-dark p-6 rounded-3xl border border-gray-800/50 shadow-soft">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">tune</span>
+                    Einstellungen & Input
+                </h3>
+
+                <form action="{{ url_for('handyzeit') }}" method="POST" class="space-y-4">
+                    <input type="hidden" name="action" value="set_time">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Exakte Zeit
+                            (Minuten)</label>
+                        <div class="flex gap-2">
+                            <input type="number" name="minutes" value="{{ usage }}"
+                                class="w-full bg-background-dark border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-mono">
+                            <button type="submit"
+                                class="px-6 py-3 bg-primary/20 text-primary font-bold rounded-xl hover:bg-primary/30 transition-colors">
+                                OK
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="h-px bg-gray-800/50 my-6"></div>
+
+                <form action="{{ url_for('handyzeit') }}" method="POST">
+                    <input type="hidden" name="action" value="update_limit">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tageslimit
+                            (Minuten)</label>
+                        <div class="flex gap-2">
+                            <input type="number" name="limit" value="{{ limit }}"
+                                class="w-full bg-background-dark border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-mono">
+                            <button type="submit"
+                                class="px-6 py-3 bg-primary/20 text-primary font-bold rounded-xl hover:bg-primary/30 transition-colors">
+                                Speicher
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- History Chart -->
+            <div class="bg-surface-dark p-6 rounded-3xl border border-gray-800/50 shadow-soft">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">history</span>
+                    Verlauf (7 Tage)
+                </h3>
+
+                <div class="flex items-end justify-between h-32 gap-2 mt-4">
+                    {% for day in history %}
+                    <div class="flex flex-col items-center gap-2 flex-1 group">
+                        <div
+                            class="w-full relative flex items-end justify-center h-full rounded-t-lg bg-gray-800/30 overflow-hidden">
+                            {% set bar_height = (day.val / (limit or 1)) * 100 %}
+                            {% set bar_height = bar_height if bar_height <= 100 else 100 %} <div
+                                class="w-full {{ 'bg-red-500' if day.val > limit else 'bg-primary' }} opacity-80 group-hover:opacity-100 transition-all duration-500 rounded-t-lg"
+                                style="height: {{ bar_height if day.val > 0 else 5 }}%">
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-bold text-gray-500 uppercase">{{ day.day }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+</div>
+
+<style>
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in-up {
+        animation: fadeInUp 0.5s ease-out forwards;
+    }
+</style>
+{% endblock %}

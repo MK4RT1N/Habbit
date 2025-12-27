@@ -33,6 +33,7 @@ class User(UserMixin, db.Model):
     habits = db.relationship('Habit', backref='user', lazy=True)
     current_streak = db.Column(db.Integer, default=0)
     last_completed_date = db.Column(db.Date, nullable=True)
+    screen_time_limit = db.Column(db.Integer, default=120) # Minutes
 
 class Friendship(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -91,6 +92,13 @@ class UserAchievement(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     achievement_id = db.Column(db.Integer, db.ForeignKey('achievement.id'), nullable=False)
     date_earned = db.Column(db.Date, default=date.today)
+
+class ScreenTimeLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    date = db.Column(db.Date, default=date.today)
+    minutes = db.Column(db.Integer, default=0)
+
 
 
 
@@ -357,6 +365,61 @@ def achievements_page():
         })
     
     return render_template('achievements.html', achievements=display_data)
+
+@app.route('/handyzeit', methods=['GET', 'POST'])
+@login_required
+def handyzeit():
+    today = date.today()
+    log = ScreenTimeLog.query.filter_by(user_id=current_user.id, date=today).first()
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'update_limit':
+            new_limit = int(request.form.get('limit'))
+            current_user.screen_time_limit = new_limit
+            db.session.commit()
+            flash('Tageslimit aktualisiert.')
+        elif action == 'add_time':
+            minutes = int(request.form.get('minutes'))
+            if not log:
+                log = ScreenTimeLog(user_id=current_user.id, date=today, minutes=0)
+                db.session.add(log)
+            log.minutes += minutes
+            db.session.commit()
+            flash(f'{minutes} Minuten hinzugefügt.')
+        elif action == 'set_time':
+             minutes = int(request.form.get('minutes'))
+             if not log:
+                log = ScreenTimeLog(user_id=current_user.id, date=today, minutes=0)
+                db.session.add(log)
+             log.minutes = minutes
+             db.session.commit()
+             flash('Zeit aktualisiert.')
+        
+        return redirect(url_for('handyzeit'))
+
+    if not log:
+        current_usage = 0
+    else:
+        current_usage = log.minutes
+        
+    limit = current_user.screen_time_limit if current_user.screen_time_limit else 120
+    percentage = min(100, int((current_usage / limit) * 100)) if limit > 0 else 100
+    
+    # History (Last 7 days)
+    history = []
+    days_de = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+    for i in range(6, -1, -1):
+        d = today - timedelta(days=i)
+        l = ScreenTimeLog.query.filter_by(user_id=current_user.id, date=d).first()
+        val = l.minutes if l else 0
+        history.append({
+            'day': days_de[d.weekday()],
+            'val': val,
+            'date': d.strftime('%d.%m.')
+        })
+
+    return render_template('handyzeit.html', usage=current_usage, limit=limit, percentage=percentage, history=history)
 
 
 
@@ -921,7 +984,8 @@ if __name__ == '__main__':
             for cmd in [
                 "ALTER TABLE task ADD COLUMN scheduled_date DATE",
                 "ALTER TABLE task ADD COLUMN is_shared BOOLEAN DEFAULT 0",
-                "ALTER TABLE task ADD COLUMN shared_id VARCHAR(36)"
+                "ALTER TABLE task ADD COLUMN shared_id VARCHAR(36)",
+                "ALTER TABLE user ADD COLUMN screen_time_limit INTEGER DEFAULT 120"
             ]:
                 try:
                     con.execute(db.text(cmd))
