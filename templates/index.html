@@ -1,32 +1,7 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<!-- Weekly Calendar Strip -->
-<div class="flex overflow-x-auto no-scrollbar gap-3 px-4 pb-4 pt-1">
-    <!-- Static Calendar Mockup (Dynamic would require Python Logic injection for dates) -->
-    <!-- We simulate "today" as active -->
-    {% set days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] %}
 
-    <!-- Simple logic rendering just a few cards for visual style as requested -->
-    <button
-        class="flex flex-col items-center justify-center min-w-[60px] h-[72px] rounded-2xl bg-surface-light dark:bg-surface-dark border border-transparent text-gray-400">
-        <span class="text-xs font-medium mb-1">Gestern</span>
-        <span class="text-lg font-bold"></span>
-    </button>
-
-    <button
-        class="flex flex-col items-center justify-center min-w-[60px] h-[72px] rounded-2xl bg-primary text-[#0d1b12] shadow-[0_0_15px_rgba(19,236,91,0.4)] transform scale-105 transition-all">
-        <span class="text-xs font-bold mb-1">Heute</span>
-        <span class="text-lg font-extrabold"></span>
-        <div class="size-1 bg-[#0d1b12] rounded-full mt-1"></div>
-    </button>
-
-    <button
-        class="flex flex-col items-center justify-center min-w-[60px] h-[72px] rounded-2xl bg-surface-light dark:bg-surface-dark border border-transparent text-gray-400">
-        <span class="text-xs font-medium mb-1">Morgen</span>
-        <span class="text-lg font-bold"></span>
-    </button>
-</div>
 
 <!-- Main Content -->
 <div class="flex flex-col gap-6 p-4">

@@ -183,6 +183,23 @@ def compute_user_state(user):
 def check_group_streak_logic(shared_id):
     pass 
 
+@app.context_processor
+def inject_calendar():
+    today = date.today()
+    # Get start of current week (Monday)
+    start = today - timedelta(days=today.weekday())
+    week_dates = []
+    days_de = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+    for i in range(7):
+        d = start + timedelta(days=i)
+        week_dates.append({
+            'day_name': days_de[i],
+            'day_num': d.day,
+            'is_today': d == today,
+            'date_str': d.strftime('%Y-%m-%d')
+        })
+    return {'week_calendar': week_dates}
+
 # --- Routes ---
 
 @app.route('/')

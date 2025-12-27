@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="dark h-full" lang="en">
+<html class="dark" lang="en">
 
 <head>
     <meta charset="utf-8" />
@@ -62,51 +62,67 @@
         .icon-filled {
             font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
-
-        body {
-            min-height: max(auto, 100dvh);
-        }
     </style>
 </head>
 
-<body
-    class="bg-background-light dark:bg-background-dark text-[#0d1b12] dark:text-white font-display overflow-x-hidden pb-12 h-full">
-    <!-- Top App Bar -->
-    <div
-        class="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md transition-colors duration-300">
-        <!-- Header Layout: Menu Left, HOME Center, Empty Right -->
+<body class="bg-background-dark text-white font-display min-h-screen flex flex-col">
+    <!-- Top App Bar (Only header is sticky) -->
+    <div class="sticky top-0 z-50 bg-background-dark/95 backdrop-blur-md transition-colors duration-300">
         <div class="grid grid-cols-3 items-center p-4">
             <div class="flex justify-start">
                 <a href="{{ url_for('logout') }}"
-                    class="flex items-center justify-center rounded-full size-10 bg-surface-light dark:bg-surface-dark text-[#0d1b12] dark:text-white shadow-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    class="flex items-center justify-center rounded-full size-10 bg-surface-dark text-white shadow-sm hover:bg-gray-800 transition-colors">
                     <span class="material-symbols-outlined">logout</span>
                 </a>
             </div>
             <div class="flex justify-center">
-                <h1 class="text-[#0d1b12] dark:text-white text-lg font-extrabold tracking-tight uppercase">HABITFLOW
-                </h1>
+                <h1 class="text-white text-lg font-extrabold tracking-tight uppercase">HABITFLOW</h1>
             </div>
             <div class="flex justify-end gap-2">
                 <a href="{{ url_for('friends_page') }}"
-                    class="flex items-center justify-center rounded-full size-10 bg-surface-light dark:bg-surface-dark text-[#0d1b12] dark:text-white shadow-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    class="flex items-center justify-center rounded-full size-10 bg-surface-dark text-white shadow-sm hover:bg-gray-800 transition-colors">
                     <span class="material-symbols-outlined">group</span>
                 </a>
             </div>
         </div>
 
+        <!-- Weekly Calendar Strip -->
+        <div class="flex overflow-x-auto no-scrollbar gap-3 px-4 pb-4 pt-1">
+            {% for d in week_calendar %}
+            {% if d.is_today %}
+            <!-- Today (Active) -->
+            <button
+                class="flex flex-col items-center justify-center min-w-[60px] h-[72px] rounded-2xl bg-primary text-[#0d1b12] shadow-[0_0_15px_rgba(19,236,91,0.4)] transform scale-105 transition-all">
+                <span class="text-xs font-bold mb-1">{{ d.day_name }}</span>
+                <span class="text-lg font-extrabold">{{ d.day_num }}</span>
+                <div class="size-1 bg-[#0d1b12] rounded-full mt-1"></div>
+            </button>
+            {% else %}
+            <!-- Other Day -->
+            <button
+                class="flex flex-col items-center justify-center min-w-[60px] h-[72px] rounded-2xl bg-surface-dark border border-transparent text-gray-400">
+                <span class="text-xs font-medium mb-1">{{ d.day_name }}</span>
+                <span class="text-lg font-bold">{{ d.day_num }}</span>
+            </button>
+            {% endif %}
+            {% endfor %}
+        </div>
+
         {% with messages = get_flashed_messages() %}
         {% if messages %}
-        <div style="margin-bottom: 1rem; text-align: center; color: var(--secondary-color);">
+        <div class="pb-2 text-center text-primary text-sm font-bold">
             {% for message in messages %}
             <p>{{ message }}</p>
             {% endfor %}
         </div>
         {% endif %}
         {% endwith %}
-
-        {% block content %}{% endblock %}
-
     </div>
+
+    <!-- Main Content scrolls underneath or expands the body -->
+    <main class="flex-grow">
+        {% block content %}{% endblock %}
+    </main>
 </body>
 
 </html>
