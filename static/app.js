@@ -7,23 +7,24 @@ let state = {
 let lastServerStateJson = "";
 let pendingRequests = 0;
 let selectedDays = [];
+let currentEntryType = 'habit'; // 'habit' or 'task'
+let currentHabitFrequency = 'daily';
+let currentHabitTargetValue = 1;
+let currentDetailId = null;
 
 // Selectors
 const getEl = (id) => document.getElementById(id);
 
 // Init
 document.addEventListener('DOMContentLoaded', () => {
-    // Try to load initial state from variable if present
     if (typeof INITIAL_STATE !== 'undefined') {
         state = { ...INITIAL_STATE };
         lastServerStateJson = JSON.stringify(state);
-        render(); // Optimistic load
+        render();
     }
 
-    // Initial Sync
     syncState();
 
-    // Start Polling Loop (every 2 seconds) for real-time updates
     setInterval(() => {
         if (pendingRequests === 0) {
             syncState(true);
@@ -33,116 +34,117 @@ document.addEventListener('DOMContentLoaded', () => {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js');
     }
-
-    populateTaskDates();
 });
 
-function populateTaskDates() {
-    const sel = getEl('new-task-date');
-    if (!sel) return;
-    sel.innerHTML = '';
+function render() {
+    // Render Hero Stats
+    const totalHabits = state.habits.length;
+    let completedHabits = 0;
+    state.habits.forEach(h => {
+        if (h.current >= h.target) completedHabits++;
+    });
 
-    const days = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-
-    for (let i = 0; i < 7; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() + i);
-
-        let label = "";
-        if (i === 0) label = "Heute";
-        else if (i === 1) label = "Morgen";
-        else label = days[d.getDay()] + ` ${d.getDate()}.${d.getMonth() + 1}.`;
-
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.innerText = label;
-        sel.appendChild(opt);
+    const pct = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0;
+    if (getEl('hero-percentage')) getEl('hero-percentage').innerText = `${pct}%`;
+    if (getEl('hero-progress-text')) getEl('hero-progress-text').innerText = `${completedHabits} von ${totalHabits} erledigt`;
+    if (getEl('hero-bar')) getEl('hero-bar').style.width = `${pct}%`;
+    if (getEl('hero-circle-path')) {
+        getEl('hero-circle-path').setAttribute('stroke-dasharray', `${pct}, 100`);
     }
-}
+    if (getEl('streak-display-hero')) getEl('streak-display-hero').innerText = `${state.streak} Tage 🔥`;
 
-// Render Hero Stats
-const totalHabits = state.habits.length;
-let completedHabits = 0;
-state.habits.forEach(h => {
-    if (h.current >= h.target) completedHabits++;
-});
+    // Render Habits
+    const habitList = getEl('habit-list');
+    if (habitList) {
+        habitList.innerHTML = '';
+        state.habits.forEach((habit, index) => {
+            const div = document.createElement('div');
+            const isCompleted = habit.completed;
 
-const pct = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0;
+            let icon = 'circle';
+            let colorClass = 'bg-gray-100 dark:bg-gray-800 text-gray-500';
+            const lowerText = habit.text.toLowerCase();
 
-if (getEl('hero-percentage')) getEl('hero-percentage').innerText = `${pct}%`;
-if (getEl('hero-progress-text')) getEl('hero-progress-text').innerText = `${completedHabits} von ${totalHabits} erledigt`;
-if (getEl('hero-bar')) getEl('hero-bar').style.width = `${pct}%`;
+            if (lowerText.includes('run') || lowerText.includes('lauf')) {
+                icon = 'directions_run'; colorClass = 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400';
+            } else if (lowerText.includes('wat') || lowerText.includes('wass')) {
+                icon = 'water_drop'; colorClass = 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400';
+            } else if (lowerText.includes('read') || lowerText.includes('les')) {
+                icon = 'menu_book'; colorClass = 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400';
+            } else if (lowerText.includes('sleep') || lowerText.includes('schlaf')) {
+                icon = 'bedtime'; colorClass = 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400';
+            } else if (lowerText.includes('medit')) {
+                icon = 'self_improvement'; colorClass = 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400';
+            } else if (lowerText.includes('sport') || lowerText.includes('gym') || lowerText.includes('train')) {
+                icon = 'fitness_center'; colorClass = 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400';
+            } else if (lowerText.includes('essen') || lowerText.includes('eat') || lowerText.includes('kochen')) {
+                icon = 'restaurant'; colorClass = 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400';
+            }
 
-// Circle Progress (Stroke-dasharray logic: 100 is full)
-if (getEl('hero-circle-path')) {
-    getEl('hero-circle-path').setAttribute('stroke-dasharray', `${pct}, 100`);
-}
+            const checkClass = isCompleted
+                ? 'bg-primary border-primary text-background-dark shadow-[0_0_10px_rgba(19,236,91,0.4)]'
+                : 'border-2 border-gray-200 dark:border-gray-700 text-transparent hover:border-primary/50';
 
-// Render Habits
-if (habitList) {
-    habitList.innerHTML = '';
-    state.habits.forEach((habit, index) => {
-        const div = document.createElement('div');
-        const isCompleted = habit.completed;
-        const progress = habit.target > 1 ? `${habit.current}/${habit.target}` : '';
+            const titleClass = isCompleted ? 'opacity-50 line-through decoration-2 decoration-primary/50' : 'text-[#0d1b12] dark:text-white';
 
-        // Icon selection based on text (simple heuristic for MVP)
-        let icon = 'circle';
-        if (habit.text.toLowerCase().includes('run') || habit.text.toLowerCase().includes('lauf')) icon = 'directions_run';
-        else if (habit.text.toLowerCase().includes('wats') || habit.text.toLowerCase().includes('wasser')) icon = 'water_drop';
-        else if (habit.text.toLowerCase().includes('read') || habit.text.toLowerCase().includes('les')) icon = 'menu_book';
-        else if (habit.text.toLowerCase().includes('sleep') || habit.text.toLowerCase().includes('schlaf')) icon = 'bedtime';
-        else if (habit.text.toLowerCase().includes('medit')) icon = 'self_improvement';
+            let progressHtml = `<p class="text-xs text-gray-500 font-medium">${habit.frequency === 'daily' ? 'Täglich' : (habit.frequency === 'specific' ? 'Tage' : 'Flexibel')}</p>`;
+            if (habit.target > 1) {
+                const progPct = Math.min((habit.current / habit.target) * 100, 100);
+                progressHtml = `
+                    <div class="flex items-center gap-2 mt-1">
+                        <div class="h-1.5 flex-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden max-w-[100px]">
+                            <div class="h-full bg-primary" style="width: ${progPct}%"></div>
+                        </div>
+                        <span class="text-[10px] text-gray-500 font-bold">${habit.current}/${habit.target}</span>
+                    </div>
+                `;
+            }
 
-        const activeClass = isCompleted
-            ? 'bg-primary border-primary text-[#0d1b12]'
-            : 'border-gray-200 dark:border-gray-600 text-transparent hover:border-primary hover:text-primary';
-
-        const titleClass = isCompleted ? 'opacity-50 line-through decoration-2 decoration-primary/50' : '';
-
-        div.className = "group flex items-center gap-4 p-3 bg-surface-light dark:bg-surface-dark rounded-2xl shadow-sm border border-transparent hover:border-primary/20 transition-all";
-        div.innerHTML = `
-                <div class="flex shrink-0 items-center justify-center size-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-                    <span class="material-symbols-outlined">${icon}</span>
+            div.className = "group flex items-center gap-4 p-4 bg-white dark:bg-surface-dark rounded-2xl shadow-sm border border-transparent hover:border-primary/10 transition-all active:scale-[0.99]";
+            div.innerHTML = `
+                <div class="flex shrink-0 items-center justify-center size-12 rounded-2xl ${colorClass} transition-transform group-hover:scale-110">
+                    <span class="material-symbols-outlined text-2xl font-medium">${icon}</span>
                 </div>
                 <div class="flex-1 min-w-0 cursor-pointer" onclick="showHabitDetails(${habit.id})">
-                    <h4 class="text-[#0d1b12] dark:text-white font-bold text-base truncate ${titleClass}">${habit.text}</h4>
-                    <p class="text-xs text-gray-500 font-medium">${habit.frequency === 'daily' ? 'Täglich' : 'Flexibel'} ${progress ? '• ' + progress : ''}</p>
+                    <h4 class="font-bold text-base truncate ${titleClass}">${habit.text}</h4>
+                    ${progressHtml}
                 </div>
-                <button onclick="toggleHabit(${index})" class="shrink-0 size-8 rounded-full border-2 flex items-center justify-center transition-all active:scale-90 ${activeClass}">
-                    <span class="material-symbols-outlined text-lg font-bold">check</span>
+                <button onclick="toggleHabit(${index}); event.stopPropagation();" class="shrink-0 size-8 rounded-full border flex items-center justify-center transition-all active:scale-75 ${checkClass}">
+                    <span class="material-symbols-outlined text-lg font-black">check</span>
                 </button>
             `;
-        habitList.appendChild(div);
-    });
-}
+            habitList.appendChild(div);
+        });
+    }
 
-// Render Tasks
-const taskList = getEl('task-list');
-if (taskList) {
-    taskList.innerHTML = '';
-    if (state.tasks) {
+    // Render Tasks
+    const taskList = getEl('task-list');
+    if (taskList) {
+        taskList.innerHTML = '';
         state.tasks.forEach((task, index) => {
             const div = document.createElement('div');
             const isCompleted = task.completed;
-            let tagHtml = '';
-            if (task.tag) tagHtml = `<span class="ml-2 text-[10px] font-bold uppercase tracking-wider text-orange-500 border border-orange-500 px-1 rounded">${task.tag}</span>`;
 
-            const checkboxClass = isCompleted
-                ? 'bg-primary border-primary text-[#0d1b12]'
-                : 'border-gray-300 dark:border-gray-600 hover:border-primary';
+            const checkClass = isCompleted
+                ? 'bg-primary border-primary text-background-dark'
+                : 'border-2 border-gray-200 dark:border-gray-700 text-transparent';
 
-            div.className = `flex items-center gap-3 p-3 rounded-xl bg-surface-light dark:bg-surface-dark shadow-sm border-l-4 ${isCompleted ? 'border-primary' : 'border-gray-300 dark:border-gray-700'}`;
+            const titleClass = isCompleted ? 'opacity-40 line-through' : 'text-[#0d1b12] dark:text-white';
+            const tagHtml = task.tag ? `<span class="text-[10px] font-bold text-primary opacity-70">${task.tag}</span>` : '';
 
+            div.className = "group flex items-center gap-4 p-4 bg-white dark:bg-surface-dark rounded-2xl shadow-sm transition-all";
             div.innerHTML = `
-                    <div class="flex-1">
-                         <span class="text-sm font-bold text-[#0d1b12] dark:text-white ${isCompleted ? 'line-through opacity-50' : ''}">${task.text}</span>
-                         ${tagHtml}
-                    </div>
-                    <button onclick="toggleTask(${index})" class="size-6 rounded border-2 flex items-center justify-center transition-all ${checkboxClass}">
-                         <span class="material-symbols-outlined text-sm font-bold ${isCompleted ? '' : 'hidden'}">check</span>
-                    </button>
-                `;
+                <div class="flex shrink-0 items-center justify-center size-10 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-400">
+                    <span class="material-symbols-outlined text-xl">assignment</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-bold text-sm truncate ${titleClass}">${task.text}</h4>
+                    ${tagHtml}
+                </div>
+                <button onclick="toggleTask(${index})" class="shrink-0 size-7 rounded-full border flex items-center justify-center transition-all ${checkClass}">
+                    <span class="material-symbols-outlined text-base font-black">check</span>
+                </button>
+            `;
             taskList.appendChild(div);
         });
     }
@@ -158,7 +160,7 @@ async function syncState(isPolling = false) {
             lastServerStateJson = json;
             state = data;
             render();
-            if (!isPolling) console.log("State synced");
+            if (currentDetailId) refreshCurrentDetail();
         }
     } catch (e) {
         if (!isPolling) console.error("Sync failed", e);
@@ -185,11 +187,9 @@ async function apiCallWithSync(endpoint, data) {
     return false;
 }
 
-// --- Specific Habit Actions ---
-
+// Actions
 async function toggleHabit(index) {
     const habit = state.habits[index];
-    // Optimistic UI update 
     if (habit.completed) {
         habit.completed = false;
         habit.current = 0;
@@ -201,11 +201,14 @@ async function toggleHabit(index) {
         }
     }
     render();
-
     const success = await apiCallWithSync('toggle_habit', { id: habit.id });
-    if (!success) {
-        syncState();
-    }
+    if (!success) syncState();
+}
+
+async function toggleHabitFromDetail() {
+    if (!currentDetailId) return;
+    const idx = state.habits.findIndex(h => h.id === currentDetailId);
+    if (idx !== -1) toggleHabit(idx);
 }
 
 async function toggleTask(index) {
@@ -216,165 +219,277 @@ async function toggleTask(index) {
     if (!success) syncState();
 }
 
-// --- Modals & New Features ---
+// ENTRY MODAL LOGIC
+function openAddEntryModal(defaultType = 'habit') {
+    const modal = getEl('add-entry-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    getEl('main-entry-input').value = '';
+    getEl('main-entry-input').focus();
 
-async function openAddHabitModal() {
-    getEl('add-habit-modal').style.display = 'flex';
-    // Reset fields
-    getEl('new-habit-text').value = '';
-    getEl('new-habit-target').value = 1;
-    getEl('new-habit-freq').value = 'daily';
-    toggleDaysInput();
+    currentHabitTargetValue = 1;
+    updateTargetDisplay();
 
-    // Load friends for selector
-    const container = getEl('friends-selector');
-    container.innerHTML = '<p style="font-size: 0.8rem; color: var(--subtext-color);">Lade Freunde...</p>';
+    selectedDays = [];
+    document.querySelectorAll('.day-check-modal').forEach(el => el.classList.remove('selected'));
+
+    populateTaskDatesModal();
+    loadFriendsForModal();
+    switchEntryType(defaultType);
+}
+
+function closeAddEntryModal() {
+    getEl('add-entry-modal').classList.add('hidden');
+}
+
+function switchEntryType(type) {
+    currentEntryType = type;
+    const isHabit = type === 'habit';
+
+    const habitTab = getEl('tab-habit');
+    const taskTab = getEl('tab-task');
+    const title = getEl('entry-title');
+    const subtitle = getEl('entry-subtitle');
+    const icon = getEl('entry-type-icon');
+    const input = getEl('main-entry-input');
+    const subBtnText = getEl('submit-btn-text');
+    const subBtnIcon = getEl('submit-btn-icon');
+
+    getEl('habit-freq-section').classList.toggle('hidden', !isHabit);
+    getEl('habit-goal-section').classList.toggle('hidden', !isHabit);
+    getEl('task-date-section').classList.toggle('hidden', isHabit);
+
+    const active = "bg-surface-dark shadow-sm text-white font-bold";
+    const inactive = "text-gray-400 font-semibold";
+
+    if (isHabit) {
+        habitTab.className = `flex-1 py-1.5 px-3 rounded-lg text-xs transition-all ${active}`;
+        taskTab.className = `flex-1 py-1.5 px-3 rounded-lg text-xs transition-all ${inactive}`;
+        title.innerText = "Neue Gewohnheit";
+        subtitle.innerText = "Beständigkeit ist der Schlüssel zum Erfolg.";
+        icon.innerText = "sentiment_satisfied";
+        input.placeholder = "z.B. 10 Seiten lesen";
+        subBtnText.innerText = "Gewohnheit erstellen";
+        subBtnIcon.innerText = "add_circle";
+    } else {
+        taskTab.className = `flex-1 py-1.5 px-3 rounded-lg text-xs transition-all ${active}`;
+        habitTab.className = `flex-1 py-1.5 px-3 rounded-lg text-xs transition-all ${inactive}`;
+        title.innerText = "Neue Aufgabe";
+        subtitle.innerText = "Erledige die Dinge nacheinander.";
+        icon.innerText = "assignment";
+        input.placeholder = "z.B. Lebensmittel einkaufen";
+        subBtnText.innerText = "Aufgabe hinzufügen";
+        subBtnIcon.innerText = "task_alt";
+    }
+}
+
+function setFrequency(freq) {
+    currentHabitFrequency = freq;
+    document.querySelectorAll('.freq-btn').forEach(b => b.classList.remove('active'));
+
+    if (freq === 'daily') getEl('freq-daily').classList.add('active');
+    if (freq === 'specific') getEl('freq-specific').classList.add('active');
+    if (freq === 'weekly_flex') getEl('freq-weekly').classList.add('active');
+
+    getEl('days-selector-modal').classList.toggle('hidden', freq !== 'specific');
+}
+
+function toggleDayModal(idx) {
+    const el = getEl(`modal-day-${idx}`);
+    if (selectedDays.includes(idx)) {
+        selectedDays = selectedDays.filter(d => d !== idx);
+        el.classList.remove('selected');
+    } else {
+        selectedDays.push(idx);
+        el.classList.add('selected');
+    }
+}
+
+function adjustTarget(amt) {
+    currentHabitTargetValue = Math.max(1, currentHabitTargetValue + amt);
+    updateTargetDisplay();
+}
+
+function updateTargetDisplay() {
+    getEl('target-display').innerText = currentHabitTargetValue;
+}
+
+function populateTaskDatesModal() {
+    const sel = getEl('new-task-date-modal');
+    if (!sel) return;
+    sel.innerHTML = '';
+    const days = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() + i);
+        let label = i === 0 ? "Heute" : (i === 1 ? "Morgen" : days[d.getDay()] + ` ${d.getDate()}.${d.getMonth() + 1}.`);
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.innerText = label;
+        sel.appendChild(opt);
+    }
+}
+
+async function loadFriendsForModal() {
+    const container = getEl('friends-selector-modal');
+    if (!container) return;
+    container.innerHTML = '<p class="text-xs text-gray-500">Lade Freunde...</p>';
     try {
         const res = await fetch('/api/get_friends');
         const friends = await res.json();
         container.innerHTML = '';
         if (friends.length === 0) {
-            container.innerHTML = '<p style="font-size: 0.8rem; color: var(--subtext-color);">Keine Freunde gefunden.</p>';
+            container.innerHTML = '<p class="text-xs text-gray-500">Keine Freunde gefunden.</p>';
         } else {
             friends.forEach(f => {
                 const div = document.createElement('div');
-                div.style.padding = '0.3rem 0';
+                div.className = "flex items-center justify-between p-2 bg-black/20 rounded-xl";
                 div.innerHTML = `
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                        <input type="checkbox" class="friend-checkbox" value="${f.id}">
-                        <span>${f.username}</span>
-                    </label>
+                    <span class="text-sm font-bold text-white">${f.username}</span>
+                    <input type="checkbox" class="friend-checkbox-modal size-5 accent-primary" value="${f.id}">
                 `;
                 container.appendChild(div);
             });
         }
-    } catch (e) {
-        container.innerHTML = '<p style="color: var(--danger-color);">Fehler beim Laden.</p>';
-    }
+    } catch (e) { container.innerHTML = '<p class="text-xs text-red-500">Fehler beim Laden.</p>'; }
 }
 
-function toggleDaysInput() {
-    const freq = getEl('new-habit-freq').value;
-    const selector = getEl('days-selector');
-    if (freq === 'specific') {
-        selector.style.display = 'flex';
-        selectedDays = [];
-        document.querySelectorAll('.day-check').forEach(el => el.classList.remove('selected'));
+async function submitEntry() {
+    const text = getEl('main-entry-input').value.trim();
+    if (!text) { alert('Bitte Text eingeben.'); return; }
+
+    if (currentEntryType === 'habit') {
+        const friendIds = [];
+        document.querySelectorAll('.friend-checkbox-modal:checked').forEach(cb => friendIds.push(parseInt(cb.value)));
+
+        const payload = {
+            text,
+            target: currentHabitTargetValue,
+            frequency: currentHabitFrequency,
+            days: selectedDays,
+            friends: friendIds
+        };
+        const success = await apiCallWithSync('add_habit', payload);
+        if (success) closeAddEntryModal();
     } else {
-        selector.style.display = 'none';
-        selectedDays = [];
+        const offset = parseInt(getEl('new-task-date-modal').value);
+        const success = await apiCallWithSync('add_task', { text, offset });
+        if (success) closeAddEntryModal();
     }
 }
 
-function toggleDay(dayIdx) {
-    const el = getEl(`day-${dayIdx}`);
-    if (selectedDays.includes(dayIdx)) {
-        selectedDays = selectedDays.filter(d => d !== dayIdx);
-        el.classList.remove('selected');
-    } else {
-        selectedDays.push(dayIdx);
-        el.classList.add('selected');
-    }
-}
-
-async function submitNewHabit() {
-    const text = getEl('new-habit-text').value.trim();
-    const target = parseInt(getEl('new-habit-target').value);
-    const freq = getEl('new-habit-freq').value;
-
-    if (!text) { alert('Bitte Namen eingeben.'); return; }
-    if (freq === 'specific' && selectedDays.length === 0) {
-        alert('Bitte mindestens einen Tag auswählen.'); return;
-    }
-
-    // Collect selected friends
-    const friendIds = [];
-    document.querySelectorAll('.friend-checkbox:checked').forEach(cb => {
-        friendIds.push(parseInt(cb.value));
-    });
-
-    const payload = {
-        text,
-        target: target || 1,
-        frequency: freq,
-        days: selectedDays,
-        friends: friendIds
-    };
-
-    const success = await apiCallWithSync('add_habit', payload);
-    if (success) {
-        getEl('add-habit-modal').style.display = 'none';
-    } else {
-        alert('Fehler beim Speichern.');
-    }
-}
-
-async function submitNewTask() {
-    const input = getEl('new-task-input');
-    const sel = getEl('new-task-date');
-    const text = input.value.trim();
-    const offset = sel ? parseInt(sel.value) : 0;
-
-    if (!text) return;
-
-    input.value = ''; // clear immediately
-    const success = await apiCallWithSync('add_task', { text, offset });
-    if (!success) alert('Fehler');
-}
-
-function handleTaskKey(e) {
-    if (e.key === 'Enter') submitNewTask();
-}
-
+// PREMIUM DETAILS POPULATION
 async function showHabitDetails(id) {
-    getEl('habit-details-modal').style.display = 'flex';
+    currentDetailId = id;
+    const modal = getEl('habit-details-modal');
+    modal.classList.remove('hidden');
+
+    // Emoji heuristic
+    const lowerText = state.habits.find(h => h.id === id)?.text.toLowerCase() || "";
+    let emoji = "✨";
+    if (lowerText.includes('run') || lowerText.includes('lauf')) emoji = "🏃";
+    else if (lowerText.includes('wat') || lowerText.includes('wass')) emoji = "💧";
+    else if (lowerText.includes('read') || lowerText.includes('les')) emoji = "📚";
+    else if (lowerText.includes('sleep') || lowerText.includes('schlaf')) emoji = "🌙";
+    else if (lowerText.includes('medit')) emoji = "🧘";
+    getEl('detail-icon-emoji').innerText = emoji;
+
     try {
         const res = await fetch(`/habit/${id}`);
         if (res.ok) {
             const data = await res.json();
             getEl('detail-title').innerText = data.text;
+            getEl('detail-subtitle').innerText = `${data.frequency === 'daily' ? 'Täglich' : 'Flexibel'}: ${data.target} ${data.target > 1 ? 'Einheiten' : 'Mal'}`;
 
-            const currentHabit = state.habits.find(h => h.id === id);
-            const current = currentHabit ? currentHabit.current : 0;
-            const target = data.target;
+            getEl('detail-streak-val').innerText = data.current_streak;
+            getEl('stat-best-streak').innerText = data.best_streak;
+            getEl('stat-total').innerText = data.total_done;
+            getEl('stat-rate').innerText = data.completion_rate + "%";
 
-            getEl('detail-stats').innerText = `${current} / ${target} (Aktuell)`;
-            const pct = target > 0 ? Math.min((current / target) * 100, 100) : 0;
-            getEl('detail-progress').style.width = `${pct}%`;
+            getEl('detail-status-text').innerText = data.current_streak > 0 ? "Du bist on fire! 🔥" : "Laufschuhe an! 💪";
 
-            const histContainer = getEl('detail-history');
-            histContainer.innerHTML = '';
-            data.history.reverse().forEach(entry => {
-                const bar = document.createElement('div');
-                bar.style.flex = '1';
-                bar.style.backgroundColor = entry.completed ? '#13ec5b' : 'rgba(255,255,255,0.1)';
-                bar.style.borderRadius = '4px';
-                bar.style.height = entry.completed ? '100%' : '20%';
-                histContainer.appendChild(bar);
+            // Calendar
+            const grid = getEl('detail-calendar-grid');
+            grid.innerHTML = '';
+            // History is last 30 days
+            data.history.slice().reverse().forEach(day => {
+                const dayEl = document.createElement('div');
+                dayEl.className = "aspect-square flex items-center justify-center text-[10px] font-bold rounded-lg transition-all";
+                if (day.completed) {
+                    dayEl.className += " bg-primary text-background-dark shadow-[0_0_8px_rgba(19,236,91,0.4)]";
+                } else if (day.partial) {
+                    dayEl.className += " bg-primary/20 text-primary";
+                } else {
+                    dayEl.className += " border border-dashed border-gray-700 text-gray-600";
+                }
+                dayEl.innerText = day.day;
+                grid.appendChild(dayEl);
+            });
+
+            // Activity
+            const activity = getEl('recent-activity-list');
+            activity.innerHTML = '';
+            data.recent.forEach(act => {
+                const item = document.createElement('div');
+                item.className = "bg-surface-dark p-4 rounded-2xl border border-gray-800 flex items-center justify-between";
+                item.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <div class="size-10 rounded-xl ${act.completed ? 'bg-primary/20 text-primary' : 'bg-gray-800 text-gray-500'} flex items-center justify-center">
+                            <span class="material-symbols-outlined text-xl">${act.completed ? 'check_circle' : 'remove_circle_outline'}</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-white">${act.display_date}</p>
+                            <p class="text-xs text-gray-500 font-medium">${act.completed ? 'Abgeschlossen' : 'Offen / Übersprungen'}</p>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-bold uppercase tracking-widest ${act.completed ? 'text-primary' : 'text-gray-600'}">${act.completed ? 'DONE' : 'MISS'}</span>
+                `;
+                activity.appendChild(item);
             });
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { }
+}
+
+function refreshCurrentDetail() {
+    if (currentDetailId) showHabitDetails(currentDetailId);
 }
 
 function closeDetails() {
-    getEl('habit-details-modal').style.display = 'none';
+    currentDetailId = null;
+    getEl('habit-details-modal').classList.add('hidden');
+}
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (!sidebar || !overlay) return;
+
+    if (sidebar.classList.contains('-translate-x-full')) {
+        // Sidebar öffnen
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('opacity-0', 'pointer-events-none');
+        overlay.classList.add('opacity-100');
+        document.body.style.overflow = 'hidden';
+    } else {
+        // Sidebar schließen
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('opacity-0', 'pointer-events-none');
+        overlay.classList.remove('opacity-100');
+        document.body.style.overflow = '';
+    }
 }
 
 // Global Bindings
 window.toggleHabit = toggleHabit;
-window.openAddHabitModal = openAddHabitModal;
-window.toggleDaysInput = toggleDaysInput;
-window.toggleDay = toggleDay;
-window.submitNewHabit = submitNewHabit;
+window.toggleTask = toggleTask;
+window.openAddEntryModal = openAddEntryModal;
+window.closeAddEntryModal = closeAddEntryModal;
+window.switchEntryType = switchEntryType;
+window.setFrequency = setFrequency;
+window.toggleDayModal = toggleDayModal;
+window.adjustTarget = adjustTarget;
+window.submitEntry = submitEntry;
 window.showHabitDetails = showHabitDetails;
 window.closeDetails = closeDetails;
-window.submitNewTask = submitNewTask;
-window.handleTaskKey = handleTaskKey;
-window.toggleTask = toggleTask;
-
-// Modal Close logic
-window.onclick = function (event) {
-    if (event.target.classList.contains('modal')) {
-        event.target.style.display = "none";
-    }
-}
+window.toggleHabitFromDetail = toggleHabitFromDetail;
+window.toggleSidebar = toggleSidebar;

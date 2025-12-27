@@ -63,23 +63,96 @@
             font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
 
+        #sidebar {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #sidebar-overlay {
+            transition: opacity 0.3s ease;
+        }
+
         body {
             min-height: max(auto, 100dvh);
-            /* min-height: max(884px, 100dvh); Removed for better responsive behavior unless explicitly stuck */
         }
     </style>
 </head>
 
 <body class="bg-background-dark text-white font-display overflow-x-hidden pb-12 min-h-screen">
-    <!-- Top App Bar -->
-    <div class="sticky top-0 z-50 bg-background-dark/95 backdrop-blur-md transition-colors duration-300">
 
-        <div class="grid grid-cols-3 items-center p-4">
+    <!-- Sidebar Overlay / Backdrop -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-[60] opacity-0 pointer-events-none"
+        onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar"
+        class="fixed top-0 left-0 h-full w-[280px] bg-surface-dark z-[70] shadow-2xl -translate-x-full flex flex-col border-r border-gray-800/50">
+
+        <!-- Profilbereich -->
+        <div class="p-6 border-b border-gray-800">
+            <div class="flex items-center gap-4">
+                <div class="size-12 rounded-2xl border-2 border-primary bg-cover bg-center shadow-[0_0_10px_rgba(19,236,91,0.2)]"
+                    style='background-image: url("https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=2680&auto=format&fit=crop");'>
+                </div>
+                <div class="flex flex-col">
+                    <h3 class="font-bold text-lg leading-tight text-white">{{ current_user.username if
+                        current_user.is_authenticated else 'Gast' }}</h3>
+                    <p class="text-xs text-primary font-bold uppercase tracking-wider">Level 12 Habit Master</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigations-Links -->
+        <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1 no-scrollbar">
+            <a href="{{ url_for('index') }}"
+                class="flex items-center gap-4 px-4 py-3 rounded-xl {% if request.endpoint == 'index' %}bg-primary/10 text-white font-bold{% else %}text-gray-400 hover:bg-gray-800 transition-colors{% endif %}">
+                <span
+                    class="material-symbols-outlined {% if request.endpoint == 'index' %}icon-filled text-primary{% endif %}">dashboard</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="{{ url_for('friends_page') }}"
+                class="flex items-center gap-4 px-4 py-3 rounded-xl {% if request.endpoint == 'friends_page' %}bg-primary/10 text-white font-bold{% else %}text-gray-400 hover:bg-gray-800 transition-colors{% endif %}">
+                <span
+                    class="material-symbols-outlined {% if request.endpoint == 'friends_page' %}icon-filled text-primary{% endif %}">group</span>
+                <span>Freunde / Social</span>
+            </a>
+            <a href="#"
+                class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-400 hover:bg-gray-800 transition-colors">
+                <span class="material-symbols-outlined">military_tech</span>
+                <span>Erfolge</span>
+            </a>
+            <a href="#"
+                class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-400 hover:bg-gray-800 transition-colors">
+                <span class="material-symbols-outlined">monitoring</span>
+                <span>Statistiken</span>
+            </a>
+
+            <div class="h-px bg-gray-800 my-2 mx-4"></div>
+
+            <a href="#"
+                class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-400 hover:bg-gray-800 transition-colors">
+                <span class="material-symbols-outlined">settings</span>
+                <span>Einstellungen</span>
+            </a>
+        </nav>
+
+        <!-- Footer -->
+        <div class="p-6 border-t border-gray-800">
+            <a href="{{ url_for('logout') }}"
+                class="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-red-500 hover:bg-red-900/10 transition-colors">
+                <span class="material-symbols-outlined">logout</span>
+                <span class="font-bold">Abmelden</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Top App Bar (Consistent height on all pages) -->
+    <header class="sticky top-0 z-50 bg-background-dark/95 backdrop-blur-md border-b border-gray-800/50">
+        <div class="grid grid-cols-3 items-center p-4 max-w-5xl mx-auto">
             <div class="flex justify-start">
-                <a href="{{ url_for('logout') }}"
+                <button onclick="toggleSidebar()"
                     class="flex items-center justify-center rounded-full size-10 bg-surface-dark text-white shadow-sm hover:bg-gray-800 transition-colors">
-                    <span class="material-symbols-outlined">logout</span>
-                </a>
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
             </div>
             <div class="flex justify-center">
                 <h1 class="text-white text-lg font-extrabold tracking-tight uppercase">HABITFLOW</h1>
@@ -92,37 +165,6 @@
             </div>
         </div>
 
-        <!-- Weekly Calendar Strip (Calculated to show exactly 5 items, taller height) -->
-        <div id="calendar-strip"
-            class="flex overflow-x-auto no-scrollbar gap-3 px-4 pb-4 pt-1 snap-x snap-mandatory scroll-px-4">
-            {% for d in week_calendar %}
-            {% if d.is_today %}
-            <button id="today-btn"
-                class="flex flex-col items-center justify-center w-[calc((100%-3rem)/5)] shrink-0 h-[96px] rounded-2xl bg-primary text-[#0d1b12] shadow-[0_0_15px_rgba(19,236,91,0.4)] transform scale-105 transition-all snap-center">
-                <span class="text-xs font-bold mb-1">{{ d.day_name }}</span>
-                <span class="text-lg font-extrabold">{{ d.day_num }}</span>
-                <div class="size-1 bg-[#0d1b12] rounded-full mt-1"></div>
-            </button>
-            {% else %}
-            <button
-                class="flex flex-col items-center justify-center w-[calc((100%-3rem)/5)] shrink-0 h-[96px] rounded-2xl bg-surface-dark border border-transparent text-gray-400 snap-center">
-                <span class="text-xs font-medium mb-1">{{ d.day_name }}</span>
-                <span class="text-lg font-bold">{{ d.day_num }}</span>
-            </button>
-            {% endif %}
-            {% endfor %}
-        </div>
-
-        <script>
-            // Center the "Today" button on load
-            window.addEventListener('load', () => {
-                const todayBtn = document.getElementById('today-btn');
-                if (todayBtn) {
-                    todayBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                }
-            });
-        </script>
-
         {% with messages = get_flashed_messages() %}
         {% if messages %}
         <div class="pb-2 text-center text-primary text-sm font-bold">
@@ -132,11 +174,10 @@
         </div>
         {% endif %}
         {% endwith %}
-
-    </div>
+    </header>
 
     <!-- Main Content centered -->
-    <main class="flex-grow w-full">
+    <main class="flex-grow w-full max-w-5xl mx-auto">
         {% block content %}{% endblock %}
     </main>
 </body>

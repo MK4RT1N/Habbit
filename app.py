@@ -375,6 +375,93 @@ def toggle_habit():
         logger.error(f"Add habit error: {e}")
         return jsonify({'success': False})
 
+@app.route('/habit/<int:id>')
+@login_required
+def get_habit_details(id):
+    habit = Habit.query.get_or_404(id)
+    if habit.user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Get all logs for this habit sorted by date
+    logs = HabitLog.query.filter_by(habit_id=id).order_by(HabitLog.date.desc()).all()
+    
+    # Calculate Streaks
+    current_streak = 0
+    best_streak = 0
+    temp_streak = 0
+    
+    today = date.today()
+    # For calculation, we need ascending order
+    asc_logs = HabitLog.query.filter_by(habit_id=id).order_by(HabitLog.date.asc()).all()
+    
+    # Simple streak calculation (daily/specific)
+    # Note: A real streak calc would check if days were missed.
+    # For MVP: consecutive days with completed=True
+    last_date = None
+    for l in asc_logs:
+        if l.completed:
+            if last_date and (l.date - last_date).days == 1:
+                temp_streak += 1
+            else:
+                temp_streak = 1
+            best_streak = max(best_streak, temp_streak)
+        else:
+            temp_streak = 0
+        last_date = l.date
+        
+    # Current Streak needs to check if it's still active (today or yesterday)
+    active_streak = 0
+    if asc_logs:
+        # Check from end
+        check_date = today
+        idx = len(asc_logs) - 1
+        while idx >= 0:
+            l = asc_logs[idx]
+            if l.completed and (l.date == check_date or l.date == check_date - timedelta(days=1)):
+                active_streak += 1
+                check_date = l.date - timedelta(days=1)
+                idx -= 1
+            else:
+                break
+    
+    current_streak = active_streak
+    total_done = sum(1 for l in logs if l.completed)
+    
+    # History for calendar (last 30 days)
+    history = []
+    for i in range(30):
+        d = today - timedelta(days=i)
+        log = next((l for l in logs if l.date == d), None)
+        history.append({
+            'date': d.strftime('%Y-%m-%d'),
+            'day': d.day,
+            'completed': log.completed if log else False,
+            'partial': (log.value > 0 and not log.completed) if log else False
+        })
+        
+    # Recent Activity
+    recent = []
+    for l in logs[:5]:
+        recent.append({
+            'date': l.date.strftime('%Y-%m-%d'),
+            'display_date': l.date.strftime('%b %d, %A'),
+            'completed': l.completed,
+            'value': l.value
+        })
+
+    return jsonify({
+        'id': habit.id,
+        'text': habit.text,
+        'target': habit.target,
+        'frequency': habit.frequency,
+        'current_streak': current_streak,
+        'best_streak': best_streak,
+        'total_done': total_done,
+        'completion_rate': round((total_done / len(logs) * 100) if logs else 0),
+        'history': history,
+        'recent': recent
+    })
+
 @app.route('/api/toggle_task', methods=['POST'])
 @login_required
 def toggle_task():

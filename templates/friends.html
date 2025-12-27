@@ -1,28 +1,64 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="card">
-    <div class="card-header">
-        <span class="card-title">Freunde</span>
-        <a href="{{ url_for('index') }}" class="btn btn-secondary">Zurück</a>
+<div class="flex flex-col h-full w-full max-w-5xl mx-auto overflow-hidden bg-background-light dark:bg-background-dark">
+    <!-- Section Title & Requests (Page Content) -->
+    <div class="flex items-center px-6 pt-6 pb-4 justify-between">
+        <h1 class="text-3xl font-extrabold tracking-tight dark:text-white capitalize">Freunde</h1>
+        <!-- Friend Requests Button -->
+        <button onclick="togglePendingModal()"
+            class="group flex items-center gap-2 bg-surface-light dark:bg-surface-dark py-2 px-4 rounded-full active:scale-95 transition-transform duration-100 hover:bg-gray-100 dark:hover:bg-surface-dark/80 shadow-soft">
+            <span class="text-sm font-bold text-text-main-light dark:text-main-dark">Anfragen</span>
+            <span id="request-count"
+                class="hidden h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-black shadow-sm group-hover:bg-primary-dark transition-colors">0</span>
+        </button>
     </div>
 
-    <!-- Add Friend -->
-    <div class="input-group" style="margin-bottom: 2rem;">
-        <input type="text" id="user-search" placeholder="Nutzer finden..." onkeyup="searchUsers()">
-        <div id="search-results" style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;"></div>
+    <!-- Search Bar -->
+    <div class="px-6 pb-2 sticky top-[88px] z-10 bg-background-light dark:bg-background-dark">
+        <div
+            class="relative flex items-center w-full h-12 rounded-full shadow-sm bg-surface-light dark:bg-surface-dark group focus-within:ring-2 focus-within:ring-primary/50 transition-all duration-200">
+            <div class="absolute left-4 flex items-center justify-center text-text-sub-light dark:text-text-sub-dark">
+                <span class="material-symbols-outlined" style="font-size: 24px;">search</span>
+            </div>
+            <input id="user-search" onkeyup="searchUsers()"
+                class="w-full h-full bg-transparent border-none focus:ring-0 text-base font-medium text-text-main-light dark:text-text-main-dark placeholder:text-text-sub-light/60 dark:placeholder:text-text-sub-dark/50 pl-12 pr-4 rounded-full"
+                placeholder="Nutzer finden..." type="text" />
+        </div>
+        <!-- Search Results Dropdown -->
+        <div id="search-results" class="mt-2 flex flex-col gap-2"></div>
     </div>
 
-    <!-- Requests -->
-    <div id="pending-section" style="display: none; margin-bottom: 2rem;">
-        <h4 style="color: var(--secondary-color); margin-bottom: 1rem;">Anfragen</h4>
-        <div id="pending-list" class="habit-list"></div>
-    </div>
+    <!-- Main Content List -->
+    <main class="flex-1 flex flex-col gap-2 px-4 py-4">
 
-    <!-- Friends List -->
-    <h4 style="color: var(--subtext-color); margin-bottom: 1rem;">Deine Freunde</h4>
-    <div id="friends-list" class="habit-list">
-        <!-- Friends injected here -->
+
+        <!-- List Divider -->
+        <div class="px-2 pb-2">
+            <p
+                class="text-xs font-bold uppercase tracking-wider text-text-sub-light dark:text-text-sub-dark opacity-70">
+                Deine Freunde</p>
+        </div>
+
+        <!-- Friend List Container -->
+        <div id="friends-list" class="flex flex-col gap-2">
+            <!-- Populated via JS -->
+        </div>
+    </main>
+
+
+</div>
+
+<!-- PENDING REQUESTS MODAL -->
+<div id="pending-modal" class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex flex-col p-6">
+    <div class="flex items-center justify-between mb-8 overflow-hidden pt-10">
+        <h2 class="text-2xl font-black text-white italic uppercase tracking-tighter">Offene Anfragen</h2>
+        <button onclick="togglePendingModal()" class="text-white bg-white/10 p-2 rounded-full">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+    </div>
+    <div id="pending-list" class="flex flex-col gap-4">
+        <!-- Populated via JS -->
     </div>
 </div>
 
@@ -34,26 +70,34 @@
 
     let searchTimeout;
     function searchUsers() {
+        const query = document.getElementById('user-search').value;
+        const container = document.getElementById('search-results');
+
+        if (query.length < 2) {
+            container.innerHTML = '';
+            return;
+        }
+
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(async () => {
-            const query = document.getElementById('user-search').value;
-            const container = document.getElementById('search-results');
-            container.innerHTML = '';
-
-            if (query.length < 2) return;
-
             const res = await fetch('/api/search_users', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query })
             });
             const users = await res.json();
+            container.innerHTML = '';
 
             users.forEach(u => {
                 const div = document.createElement('div');
-                div.className = 'habit-item';
+                div.className = 'group flex items-center justify-between p-4 bg-surface-light dark:bg-surface-dark rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm';
                 div.innerHTML = `
-                    <span>${u.username}</span>
+                    <div class="flex items-center gap-3 text-left">
+                        <div class="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                            <span class="material-symbols-outlined">person</span>
+                        </div>
+                        <span class="font-bold dark:text-white capitalize">${u.username}</span>
+                    </div>
                     ${getActionButton(u)}
                 `;
                 container.appendChild(div);
@@ -62,10 +106,10 @@
     }
 
     function getActionButton(user) {
-        if (user.status === 'pending') return '<span style="color: var(--subtext-color); font-size: 0.8rem;">Angefragt</span>';
-        if (user.status === 'msg_received') return '<button class="btn" style="padding: 0.3rem 0.8rem;" onclick="acceptFriend(' + user.id + ')">Annehmen</button>';
-        if (user.status === 'accepted') return '<span style="color: var(--primary-color);">Freunde</span>';
-        return `<button class="btn btn-secondary" style="padding: 0.3rem 0.8rem;" onclick="addFriend(${user.id})">Add</button>`;
+        if (user.status === 'pending') return '<span class="text-xs font-bold text-gray-500 uppercase tracking-widest">Wartend</span>';
+        if (user.status === 'msg_received') return `<button class="bg-primary text-black px-4 py-2 rounded-xl font-bold text-xs" onclick="acceptFriend(${user.id})">Annehmen</button>`;
+        if (user.status === 'accepted') return '<span class="text-primary font-bold text-xs uppercase italic flex items-center gap-1"><span class="material-symbols-outlined text-sm">check_circle</span>Friends</span>';
+        return `<button class="bg-gray-200 dark:bg-gray-800 text-black dark:text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-primary hover:text-black transition-all" onclick="addFriend(${user.id})">Hinzufügen</button>`;
     }
 
     async function addFriend(id) {
@@ -74,7 +118,7 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })
         });
-        searchUsers(); // Refresh
+        searchUsers();
     }
 
     async function acceptFriend(id) {
@@ -88,27 +132,41 @@
         searchUsers();
     }
 
+    function togglePendingModal() {
+        document.getElementById('pending-modal').classList.toggle('hidden');
+    }
+
     async function loadPending() {
         const res = await fetch('/api/get_pending_requests');
         const reqs = await res.json();
         const container = document.getElementById('pending-list');
-        const section = document.getElementById('pending-section');
+        const counter = document.getElementById('request-count');
+
+        if (reqs.length > 0) {
+            counter.innerText = reqs.length;
+            counter.classList.remove('hidden');
+            counter.classList.add('flex');
+        } else {
+            counter.classList.add('hidden');
+        }
 
         container.innerHTML = '';
-        if (reqs.length > 0) {
-            section.style.display = 'block';
-            reqs.forEach(u => {
-                const div = document.createElement('div');
-                div.className = 'habit-item';
-                div.innerHTML = `
-                    <span>${u.username}</span>
-                    <button class="btn" onclick="acceptFriend(${u.id})">Annehmen</button>
-                `;
-                container.appendChild(div);
-            });
-        } else {
-            section.style.display = 'none';
+        if (reqs.length === 0) {
+            container.innerHTML = '<p class="text-center text-gray-500 py-10 font-medium">Keine Anfragen vorhanden.</p>';
         }
+
+        reqs.forEach(u => {
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between p-4 bg-white/10 rounded-3xl border border-white/5';
+            div.innerHTML = `
+                <div class="flex items-center gap-4">
+                    <div class="size-12 rounded-full bg-cover bg-center border-2 border-primary/20" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDBhWKMj2f6YNVUsmXdQIfGuVwEOK4f74pap9qWM5tEeolY9ESnWsQSggtTXsbtwgsGD5dAQuwF16f54U7nPP1MrQBaoBM74uWqHd64MBzhpBdNf6QBE-VWj4oOpnl99Wb3Su87Zj_cZf7E11Pq_qr2XqEQry3VyWSVkIx6A8yTOmWG9cmrqM8VHQm6LCZW5ysnCRiuonslpXgjvFRgXcEZ6l1Bnc9kNOFiH5PR4iBs_3i3Xr_UM5utgNNnFlREq_-pwnCAI-9y_Pvi');"></div>
+                    <span class="font-bold text-white text-lg">${u.username}</span>
+                </div>
+                <button class="bg-primary text-black h-10 px-6 rounded-2xl font-black text-xs uppercase" onclick="acceptFriend(${u.id})">Annehmen</button>
+            `;
+            container.appendChild(div);
+        });
     }
 
     async function loadFriends() {
@@ -117,25 +175,37 @@
         const container = document.getElementById('friends-list');
 
         container.innerHTML = '';
+        if (friends.length === 0) {
+            container.innerHTML = '<div class="py-20 text-center flex flex-col items-center gap-4 opacity-30"><span class="material-symbols-outlined text-6xl">person_off</span><p class="font-bold">Noch keine Freunde.</p></div>';
+        }
+
         friends.forEach(f => {
             const div = document.createElement('div');
-            div.className = 'habit-item';
+            div.className = "group flex items-center gap-4 p-3 rounded-2xl hover:bg-surface-light dark:hover:bg-surface-dark transition-colors duration-200 cursor-pointer";
             div.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 30px; height: 30px; background: var(--surface-color); border-radius: 50%; display: flex; justify-content: center; align-items: center;">👤</div>
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="font-weight: 600;">${f.username}</span>
-                        <span style="font-size: 0.8rem; color: var(--primary-color);">🔥 Streak: ${f.streak}</span>
+                <div class="relative shrink-0">
+                    <div class="h-14 w-14 rounded-full bg-cover bg-center border-2 border-surface-light dark:border-surface-dark ring-2 ring-primary/20 shadow-sm" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuApRHDuqsN9lU_grCG2NqqQGQkcIUWj3XgANcc59qAchrDKPYzPyTbOFZFAJtT5ieyU-3566K_oivBUi2yz8BiBzELgjMeQjU3akmPk3KW6E_IwFSLwCEvtQ1V2YcpZXwztRdButPlhe7txtQaa6uwu8HXR1GBZ2Z5Ju9yCgRujuzLTtBoKMoGqwiXXPN0WAVKtxAKovqmcOXzBohCWXhrlU9AK0Zl0OD3tcwtVJIw3HTDtC8NHUqo_67g4YzD1CQUL_XEggTDHVwyp');"></div>
+                    <div class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-background-light dark:bg-background-dark ring-2 ring-surface-light dark:ring-surface-dark">
+                        <span class="text-sm">🔥</span>
                     </div>
                 </div>
-                <button class="delete-btn" onclick="removeFriend(${f.id})">Entfernen</button>
+                <div class="flex flex-col flex-1 min-w-0">
+                    <div class="flex justify-between items-center">
+                        <p class="text-text-main-light dark:text-main-dark text-base font-bold truncate">${f.username}</p>
+                        <span class="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full whitespace-nowrap italic">${f.streak} Tage Streak</span>
+                    </div>
+                    <p class="text-text-sub-light dark:text-text-sub-dark text-sm font-medium truncate">Aktiv heute 💪</p>
+                </div>
+                <button onclick="removeFriend(${f.id})" class="flex h-8 w-8 items-center justify-center rounded-full text-text-sub-light dark:text-text-sub-dark hover:bg-red-500/10 hover:text-red-500 transition-colors">
+                    <span class="material-symbols-outlined text-xl">delete</span>
+                </button>
             `;
             container.appendChild(div);
         });
     }
 
     async function removeFriend(id) {
-        if (!confirm('Freund entfernen?')) return;
+        if (!confirm('Möchtest du diesen Freund wirklich entfernen?')) return;
         await fetch('/api/remove_friend', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -144,4 +214,14 @@
         loadFriends();
     }
 </script>
+
+<style>
+    .shadow-soft {
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    input::placeholder {
+        opacity: 0.5;
+    }
+</style>
 {% endblock %}

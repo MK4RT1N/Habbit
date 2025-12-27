@@ -2,9 +2,38 @@
 
 {% block content %}
 
-
 <!-- Main Content -->
 <div class="flex flex-col gap-6 p-4">
+    <!-- Weekly Calendar Strip (Now on Dashboard only) -->
+    <div id="calendar-strip"
+        class="flex overflow-x-auto no-scrollbar gap-3 pb-4 pt-1 snap-x snap-mandatory scroll-px-4 -mx-4 px-4 border-b border-gray-800/10">
+        {% for d in week_calendar %}
+        {% if d.is_today %}
+        <button id="today-btn"
+            class="flex flex-col items-center justify-center w-[calc((100%-3rem)/5)] shrink-0 h-[96px] rounded-2xl bg-primary text-[#0d1b12] shadow-[0_0_15px_rgba(19,236,91,0.4)] transform scale-105 transition-all snap-center">
+            <span class="text-xs font-bold mb-1">{{ d.day_name }}</span>
+            <span class="text-lg font-extrabold">{{ d.day_num }}</span>
+            <div class="size-1 bg-[#0d1b12] rounded-full mt-1"></div>
+        </button>
+        {% else %}
+        <button
+            class="flex flex-col items-center justify-center w-[calc((100%-3rem)/5)] shrink-0 h-[96px] rounded-2xl bg-surface-dark border border-transparent text-gray-400 snap-center">
+            <span class="text-xs font-medium mb-1">{{ d.day_name }}</span>
+            <span class="text-lg font-bold">{{ d.day_num }}</span>
+        </button>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    <script>
+        // Center the "Today" button on load
+        window.addEventListener('load', () => {
+            const todayBtn = document.getElementById('today-btn');
+            if (todayBtn) {
+                todayBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        });
+    </script>
     <!-- Hero Progress Card -->
     <div class="relative overflow-hidden rounded-2xl bg-surface-dark shadow-soft group">
         <div class="absolute inset-0 z-0 bg-cover bg-center opacity-60 mix-blend-overlay"
@@ -15,8 +44,8 @@
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-primary text-xs font-bold uppercase tracking-wider mb-1">Aktueller Streak</p>
-                    <h3 class="text-white text-2xl font-bold leading-tight max-w-[200px]" id="streak-display-hero">{{
-                        streak }} Tage 🔥</h3>
+                    <h3 class="text-white text-2xl font-bold leading-tight max-w-[200px]" id="streak-display-hero">
+                        {{ streak }} Tage 🔥</h3>
                 </div>
                 <div class="relative size-16 flex items-center justify-center">
                     <svg class="size-full -rotate-90 transform" viewbox="0 0 36 36">
@@ -27,7 +56,8 @@
                         <path id="hero-circle-path" class="text-primary drop-shadow-[0_0_4px_rgba(19,236,91,0.8)]"
                             d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                             fill="none" stroke="currentColor" stroke-dasharray="0, 100" stroke-linecap="round"
-                            stroke-width="4"></path>
+                            stroke-width="4">
+                        </path>
                     </svg>
                     <span id="hero-percentage" class="absolute text-sm font-bold text-white">0%</span>
                 </div>
@@ -39,30 +69,19 @@
                 <!-- Linear Progress -->
                 <div class="h-2 w-full bg-white/20 rounded-full overflow-hidden">
                     <div id="hero-bar" class="h-full bg-primary shadow-[0_0_10px_rgba(19,236,91,0.6)]"
-                        style="width: 0%"></div>
+                        style="width: 0%">
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Daily Tasks Section (New) -->
+    <!-- Daily Tasks Section -->
     <div>
         <div class="flex items-center justify-between mb-3">
-            <h3 class="text-[#0d1b12] dark:text-white text-lg font-bold leading-tight">Tages-Aufgaben</h3>
+            <h3 class="text-white text-lg font-bold leading-tight uppercase tracking-wide opacity-80">Aktuelle Aufgaben
+            </h3>
         </div>
-
-        <!-- Input Form Styled -->
-        <div class="flex gap-2 mb-4 bg-surface-light dark:bg-surface-dark p-2 rounded-xl shadow-sm">
-            <select id="new-task-date"
-                class="bg-transparent border-none text-sm text-[#0d1b12] dark:text-white focus:ring-0 font-medium max-w-[100px]">
-                <!-- Populated by JS -->
-            </select>
-            <input type="text" id="new-task-input" placeholder="+ Aufgabe..."
-                class="bg-transparent border-none text-sm text-[#0d1b12] dark:text-white focus:ring-0 flex-grow placeholder:text-gray-500"
-                onkeypress="handleTaskKey(event)">
-            <button onclick="submitNewTask()" class="text-primary font-bold px-2">OK</button>
-        </div>
-
         <div id="task-list" class="flex flex-col gap-3">
             <!-- Tasks injected by JS -->
         </div>
@@ -71,8 +90,8 @@
     <!-- Habits Section -->
     <div>
         <div class="flex items-center justify-between mb-3">
-            <h3 class="text-[#0d1b12] dark:text-white text-lg font-bold leading-tight">Heutige Habits</h3>
-            <button onclick="openAddHabitModal()" class="text-sm font-semibold text-primary">Neuer Habit</button>
+            <h3 class="text-white text-lg font-bold leading-tight uppercase tracking-wide opacity-80">Tägliche Habits
+            </h3>
         </div>
         <div class="flex flex-col gap-3" id="habit-list">
             <!-- Habits injected by JS -->
@@ -82,91 +101,292 @@
 
 <!-- Floating Action Button -->
 <div class="fixed bottom-6 right-5 z-40">
-    <button onclick="openAddHabitModal()"
-        class="flex items-center justify-center size-14 rounded-full bg-[#0d1b12] text-primary shadow-[0_4px_14px_rgba(0,0,0,0.4)] hover:scale-105 transition-transform active:scale-95">
-        <span class="material-symbols-outlined text-3xl">add</span>
+    <button onclick="openAddEntryModal()"
+        class="flex items-center justify-center size-14 rounded-full bg-primary text-background-dark shadow-[0_8px_30px_rgb(19,236,91,0.3)] hover:scale-105 transition-transform active:scale-95">
+        <span class="material-symbols-outlined text-3xl font-bold">add</span>
     </button>
 </div>
 
-<!-- Modal (Re-styled for Tailwind) -->
-<div id="add-habit-modal"
-    class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex justify-center items-center p-4">
-    <div class="bg-surface-light dark:bg-surface-dark w-full max-w-sm rounded-2xl p-6 shadow-2xl flex flex-col gap-4">
-        <h3 class="text-xl font-bold text-[#0d1b12] dark:text-white">Neue Gewohnheit</h3>
+<!-- FULL SCREEN ENTRY MODAL (NEW) -->
+<div id="add-entry-modal" class="hidden fixed inset-0 z-[100] bg-background-dark flex flex-col overflow-hidden">
+    <!-- Header mit Tab-Menü -->
+    <header class="px-4 pt-10 pb-4 bg-background-dark z-20 sticky top-0 border-b border-gray-800/50">
+        <div class="flex items-center justify-between mb-2">
+            <button onclick="closeAddEntryModal()"
+                class="flex items-center justify-center p-2 -ml-2 text-gray-200 hover:bg-gray-800 rounded-full transition-colors">
+                <span class="material-symbols-outlined text-2xl">close</span>
+            </button>
+            <div class="flex-1 flex justify-center">
+                <div class="bg-[#1a3524] p-1 rounded-xl flex w-56">
+                    <button id="tab-habit" onclick="switchEntryType('habit')"
+                        class="flex-1 py-1.5 px-3 rounded-lg text-xs font-bold bg-surface-dark shadow-sm text-white transition-all">
+                        Gewohnheit
+                    </button>
+                    <button id="tab-task" onclick="switchEntryType('task')"
+                        class="flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold text-gray-400 hover:text-gray-200 transition-all">
+                        Aufgabe
+                    </button>
+                </div>
+            </div>
+            <div class="w-10"></div>
+        </div>
+    </header>
 
-        <div class="flex flex-col gap-2">
-            <label class="text-xs text-gray-500 font-bold uppercase">Name</label>
-            <input type="text" id="new-habit-text"
-                class="rounded-lg bg-gray-50 dark:bg-black/20 border-transparent focus:border-primary focus:ring-primary text-[#0d1b12] dark:text-white"
-                placeholder="z.B. Joggen">
+    <div class="flex-1 overflow-y-auto no-scrollbar px-6 pb-40">
+        <!-- Dynamischer Titel -->
+        <div class="mt-8 mb-8">
+            <h1 id="entry-title" class="text-3xl font-800 tracking-tight text-white">Neue Gewohnheit</h1>
+            <p id="entry-subtitle" class="text-gray-400 text-sm mt-1">Beständigkeit ist der Schlüssel zum Erfolg.</p>
         </div>
 
-        <div class="flex gap-4">
-            <div class="flex flex-col gap-2 flex-1">
-                <label class="text-xs text-gray-500 font-bold uppercase">Ziel</label>
-                <input type="number" id="new-habit-target" value="1" min="1"
-                    class="rounded-lg bg-gray-50 dark:bg-black/20 border-transparent focus:border-primary text-[#0d1b12] dark:text-white">
+        <!-- Eingabebereich -->
+        <div class="mb-8">
+            <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Was hast du vor?</label>
+            <div class="flex gap-4">
+                <div
+                    class="flex-shrink-0 size-14 bg-[#1a3524] rounded-2xl flex items-center justify-center text-primary">
+                    <span id="entry-type-icon" class="material-symbols-outlined text-3xl">sentiment_satisfied</span>
+                </div>
+                <input autofocus id="main-entry-input"
+                    class="flex-1 bg-[#1a3524] border-none rounded-2xl h-14 px-4 text-lg font-bold text-white placeholder:text-gray-600 focus:ring-2 focus:ring-primary transition-all"
+                    placeholder="z.B. 10 Seiten lesen" type="text" />
             </div>
-            <div class="flex flex-col gap-2 flex-1">
-                <label class="text-xs text-gray-500 font-bold uppercase">Häufigkeit</label>
-                <select id="new-habit-freq" onchange="toggleDaysInput()"
-                    class="rounded-lg bg-gray-50 dark:bg-black/20 border-transparent focus:border-primary text-[#0d1b12] dark:text-white">
-                    <option value="daily">Täglich</option>
-                    <option value="specific">Bestimmte Tage</option>
-                    <option value="weekly_flex">Wöchentlich</option>
+        </div>
+
+        <!-- Startdatum Auswahl (nur für Aufgaben sichtbar) -->
+        <div id="task-date-section" class="hidden mb-8">
+            <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Wann?</label>
+            <div class="bg-[#1a3524] rounded-2xl p-4 flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary">calendar_today</span>
+                <select id="new-task-date-modal"
+                    class="bg-transparent border-none text-white font-bold flex-grow focus:ring-0">
+                    <!-- Populated by JS -->
                 </select>
             </div>
         </div>
 
-        <div id="days-selector" class="hidden flex-wrap gap-2">
-            <div class="day-check size-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs cursor-pointer"
-                onclick="toggleDay(0)" id="day-0">Mo</div>
-            <div class="day-check size-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs cursor-pointer"
-                onclick="toggleDay(1)" id="day-1">Di</div>
-            <div class="day-check size-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs cursor-pointer"
-                onclick="toggleDay(2)" id="day-2">Mi</div>
-            <div class="day-check size-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs cursor-pointer"
-                onclick="toggleDay(3)" id="day-3">Do</div>
-            <div class="day-check size-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs cursor-pointer"
-                onclick="toggleDay(4)" id="day-4">Fr</div>
-            <div class="day-check size-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs cursor-pointer"
-                onclick="toggleDay(5)" id="day-5">Sa</div>
-            <div class="day-check size-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs cursor-pointer"
-                onclick="toggleDay(6)" id="day-6">So</div>
-        </div>
+        <!-- Häufigkeitsbereich (Habit) -->
+        <div class="mb-8" id="habit-freq-section">
+            <h3 class="text-lg font-bold text-white mb-4">Wiederholung</h3>
+            <div class="bg-[#1a3524] p-1 rounded-xl flex mb-6">
+                <button id="freq-daily" onclick="setFrequency('daily')"
+                    class="freq-btn flex-1 py-2 px-3 rounded-lg text-sm font-bold bg-surface-dark text-white transition-all">Täglich</button>
+                <button id="freq-specific" onclick="setFrequency('specific')"
+                    class="freq-btn flex-1 py-2 px-3 rounded-lg text-sm font-medium text-gray-400">Tage</button>
+                <button id="freq-weekly" onclick="setFrequency('weekly_flex')"
+                    class="freq-btn flex-1 py-2 px-3 rounded-lg text-sm font-medium text-gray-400">Flex</button>
+            </div>
 
-        <div class="flex flex-col gap-2">
-            <label class="text-xs text-gray-500 font-bold uppercase">Teilen mit</label>
-            <div id="friends-selector" class="h-24 overflow-y-auto bg-gray-50 dark:bg-black/20 rounded-lg p-2">
-                <!-- Friends -->
+            <!-- Wochentage -->
+            <div id="days-selector-modal"
+                class="hidden flex justify-between gap-1 mt-4 overflow-x-auto no-scrollbar pb-2">
+                <div class="day-check-modal size-10 rounded-full bg-[#1a3524] text-gray-400 font-bold text-sm flex items-center justify-center cursor-pointer transition-all"
+                    onclick="toggleDayModal(0)" id="modal-day-0">M</div>
+                <div class="day-check-modal size-10 rounded-full bg-[#1a3524] text-gray-400 font-bold text-sm flex items-center justify-center cursor-pointer transition-all"
+                    onclick="toggleDayModal(1)" id="modal-day-1">D</div>
+                <div class="day-check-modal size-10 rounded-full bg-[#1a3524] text-gray-400 font-bold text-sm flex items-center justify-center cursor-pointer transition-all"
+                    onclick="toggleDayModal(2)" id="modal-day-2">M</div>
+                <div class="day-check-modal size-10 rounded-full bg-[#1a3524] text-gray-400 font-bold text-sm flex items-center justify-center cursor-pointer transition-all"
+                    onclick="toggleDayModal(3)" id="modal-day-3">D</div>
+                <div class="day-check-modal size-10 rounded-full bg-[#1a3524] text-gray-400 font-bold text-sm flex items-center justify-center cursor-pointer transition-all"
+                    onclick="toggleDayModal(4)" id="modal-day-4">F</div>
+                <div class="day-check-modal size-10 rounded-full bg-[#1a3524] text-gray-400 font-bold text-sm flex items-center justify-center cursor-pointer transition-all"
+                    onclick="toggleDayModal(5)" id="modal-day-5">S</div>
+                <div class="day-check-modal size-10 rounded-full bg-[#1a3524] text-gray-400 font-bold text-sm flex items-center justify-center cursor-pointer transition-all"
+                    onclick="toggleDayModal(6)" id="modal-day-6">S</div>
             </div>
         </div>
 
-        <button onclick="submitNewHabit()"
-            class="bg-primary text-[#0d1b12] font-bold py-3 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all">Erstellen</button>
-        <button onclick="getEl('add-habit-modal').style.display='none'" class="text-gray-500 text-sm">Abbrechen</button>
+        <!-- Tagesziel-Bereich (Habit) -->
+        <div class="mb-8" id="habit-goal-section">
+            <h3 class="text-lg font-bold text-white mb-4">Tagesziel</h3>
+            <div
+                class="bg-surface-dark rounded-2xl p-6 flex items-center justify-between shadow-soft border border-gray-800">
+                <div class="flex flex-col">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">Zielvorgabe</span>
+                    <div class="flex items-baseline gap-1 mt-1">
+                        <span id="target-display" class="text-3xl font-bold text-white">1</span>
+                        <span class="text-sm text-gray-500 font-medium ml-1">Mal / Tag</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 bg-[#1a3524] rounded-xl p-1.5">
+                    <button onclick="adjustTarget(-1)"
+                        class="size-10 flex items-center justify-center bg-surface-dark rounded-lg shadow-sm text-gray-400 hover:text-white transition-colors">
+                        <span class="material-symbols-outlined">remove</span>
+                    </button>
+                    <button onclick="adjustTarget(1)"
+                        class="size-10 flex items-center justify-center bg-primary text-background-dark rounded-lg shadow-sm hover:brightness-110 transition-all font-bold">
+                        <span class="material-symbols-outlined">add</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Teilen mit Freunden -->
+        <div class="mb-8" id="entry-friends-section">
+            <h3 class="text-lg font-bold text-white mb-4">Teilen mit Freunden</h3>
+            <div id="friends-selector-modal"
+                class="bg-surface-dark rounded-2xl p-4 max-h-48 overflow-y-auto border border-gray-800 flex flex-col gap-2">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Button Fixed Bottom -->
+    <div class="mt-auto p-6 bg-gradient-to-t from-background-dark via-background-dark to-transparent pt-12">
+        <button id="main-submit-btn" onclick="submitEntry()"
+            class="w-full bg-primary hover:brightness-105 text-background-dark font-extrabold text-lg h-16 rounded-2xl shadow-[0_8px_30px_rgb(19,236,91,0.2)] transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
+            <span id="submit-btn-icon" class="material-symbols-outlined font-bold">add_circle</span>
+            <span id="submit-btn-text">Gewohnheit erstellen</span>
+        </button>
     </div>
 </div>
 
-<!-- Modal Details -->
-<div id="habit-details-modal"
-    class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex justify-center items-center p-4">
-    <div class="bg-surface-light dark:bg-surface-dark w-full max-w-sm rounded-2xl p-6 shadow-2xl flex flex-col gap-4">
-        <h3 id="detail-title" class="text-xl font-bold text-[#0d1b12] dark:text-white">Details</h3>
-        <div class="flex flex-col gap-1">
-            <div class="flex justify-between text-sm">
-                <span>Fortschritt</span>
-                <span id="detail-stats">0/1</span>
-            </div>
-            <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div id="detail-progress" class="h-full bg-primary"></div>
-            </div>
+<!-- PREMIUM HABIT DETAILS MODAL -->
+<div id="habit-details-modal" class="hidden fixed inset-0 z-[120] bg-background-dark flex flex-col overflow-hidden">
+    <!-- Top App Bar (Matched to Global Header) -->
+    <div
+        class="flex items-center px-4 h-[72px] justify-between sticky top-0 z-10 bg-background-dark/95 backdrop-blur-md border-b border-gray-800/50">
+        <div class="flex-1 flex justify-start">
+            <button onclick="closeDetails()"
+                class="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-dark text-white shadow-sm hover:bg-gray-800 transition-colors border-none outline-none">
+                <span class="material-symbols-outlined" style="font-size: 24px;">arrow_back</span>
+            </button>
         </div>
-        <div class="bg-gray-50 dark:bg-black/20 p-3 rounded-xl flex items-end gap-1 h-24" id="detail-history">
+        <h2 class="text-white text-lg font-extrabold tracking-tight uppercase">Habit Details</h2>
+        <div class="flex-1 flex justify-end">
+            <button
+                class="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-dark text-white shadow-sm hover:bg-gray-800 transition-colors border-none outline-none">
+                <span class="material-symbols-outlined" style="font-size: 24px;">more_horiz</span>
+            </button>
         </div>
-        <button onclick="closeDetails()"
-            class="bg-gray-200 dark:bg-gray-700 text-[#0d1b12] dark:text-white py-2 rounded-xl">Schließen</button>
     </div>
+
+    <main class="flex-1 overflow-y-auto no-scrollbar px-4 pb-32">
+        <!-- Hero Card -->
+        <div class="mt-6 mb-8">
+            <div
+                class="flex flex-col items-stretch justify-start rounded-3xl bg-surface-dark overflow-hidden border border-gray-800 shadow-xl">
+                <div class="relative h-48 w-full bg-center bg-no-repeat bg-cover"
+                    style='background-image: url("https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=2720&auto=format&fit=crop");'>
+                    <div
+                        class="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/40 to-transparent flex items-end p-6">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="size-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-3xl shadow-inner border border-white/20">
+                                <span id="detail-icon-emoji">💧</span>
+                            </div>
+                            <div class="text-white">
+                                <h1 id="detail-title" class="text-3xl font-extrabold leading-tight tracking-tight">Drink
+                                    Water</h1>
+                                <p id="detail-subtitle"
+                                    class="text-primary text-sm font-bold uppercase tracking-wider mt-1">Täglich: 8
+                                    Gläser</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6 flex flex-col gap-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-1">Status</p>
+                            <p id="detail-status-text" class="text-xl font-extrabold text-white">Du bist on fire! 🔥</p>
+                        </div>
+                        <div class="text-right">
+                            <p id="detail-streak-val" class="text-primary text-4xl font-black leading-none italic">5</p>
+                            <p class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">Tage Streak
+                            </p>
+                        </div>
+                    </div>
+                    <div class="h-px w-full bg-gray-800"></div>
+                    <div class="flex items-center justify-between gap-4">
+                        <p class="text-sm font-medium text-gray-400">Hast du es heute schon erledigt?</p>
+                        <button onclick="toggleHabitFromDetail()"
+                            class="flex items-center justify-center rounded-2xl h-12 px-8 bg-primary hover:brightness-110 active:scale-95 transition-all text-background-dark font-black text-sm shadow-lg shadow-primary/20">
+                            <span class="material-symbols-outlined mr-2 text-xl font-black">check</span>
+                            Check In
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Grid -->
+        <div class="mb-8">
+            <h3 class="text-lg font-extrabold mb-4 px-1 text-white uppercase tracking-wider">Statistiken</h3>
+            <div class="grid grid-cols-3 gap-3">
+                <div
+                    class="bg-surface-dark p-4 rounded-2xl border border-gray-800 flex flex-col items-center justify-center text-center gap-2">
+                    <div
+                        class="size-10 rounded-full bg-orange-900/30 text-orange-400 flex items-center justify-center mb-1">
+                        <span class="material-symbols-outlined text-xl">local_fire_department</span>
+                    </div>
+                    <p id="stat-best-streak" class="text-2xl font-black text-white italic">12</p>
+                    <p class="text-[9px] font-bold uppercase text-gray-500 tracking-widest leading-tight">Bester Streak
+                    </p>
+                </div>
+                <div
+                    class="bg-surface-dark p-4 rounded-2xl border border-gray-800 flex flex-col items-center justify-center text-center gap-2">
+                    <div
+                        class="size-10 rounded-full bg-blue-900/30 text-blue-400 flex items-center justify-center mb-1">
+                        <span class="material-symbols-outlined text-xl">done_all</span>
+                    </div>
+                    <p id="stat-total" class="text-2xl font-black text-white italic">45</p>
+                    <p class="text-[9px] font-bold uppercase text-gray-500 tracking-widest leading-tight">Gesamt</p>
+                </div>
+                <div
+                    class="bg-surface-dark p-4 rounded-2xl border border-gray-800 flex flex-col items-center justify-center text-center gap-2">
+                    <div
+                        class="size-10 rounded-full bg-purple-900/30 text-purple-400 flex items-center justify-center mb-1">
+                        <span class="material-symbols-outlined text-xl">percent</span>
+                    </div>
+                    <p id="stat-rate" class="text-2xl font-black text-white italic">82%</p>
+                    <p class="text-[9px] font-bold uppercase text-gray-500 tracking-widest leading-tight">Erfüllung</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar Section -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between mb-4 px-1">
+                <h3 class="text-lg font-extrabold text-white uppercase tracking-wider">Verlauf</h3>
+                <div class="flex gap-2">
+                    <span id="calendar-month" class="text-sm font-bold text-gray-400">Letzte 30 Tage</span>
+                </div>
+            </div>
+            <div class="bg-surface-dark p-5 rounded-3xl border border-gray-800">
+                <div id="detail-calendar-grid" class="grid grid-cols-7 gap-2">
+                    <!-- Populated by JS -->
+                </div>
+                <div
+                    class="mt-6 flex items-center justify-center gap-6 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                    <div class="flex items-center gap-2">
+                        <div class="size-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(19,236,91,0.5)]"></div>
+                        <span>Erledigt</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="size-2.5 rounded-full bg-primary/20"></div>
+                        <span>Teilweise</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="size-2.5 rounded-full border border-dashed border-gray-600"></div>
+                        <span>Offen</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent History List -->
+        <div class="mb-12">
+            <div class="flex items-center justify-between mb-4 px-1">
+                <h3 class="text-lg font-extrabold text-white uppercase tracking-wider">Aktivitäten</h3>
+                <button class="text-primary text-xs font-bold uppercase tracking-widest">Alle ansehen</button>
+            </div>
+            <div id="recent-activity-list" class="flex flex-col gap-3">
+                <!-- Activities injected by JS -->
+            </div>
+        </div>
+    </main>
 </div>
 
 <script>
@@ -177,12 +397,20 @@
     };
 </script>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
+
 <style>
-    /* Helper classes for JS toggles since we replaced CSS */
-    .day-check.selected {
+    .day-check-modal.selected {
         background-color: #13ec5b !important;
-        color: #0d1b12 !important;
-        font-weight: bold;
+        color: #102216 !important;
+        box-shadow: 0 4px 12px rgba(19, 236, 91, 0.4);
+    }
+
+    .freq-btn.active {
+        background-color: #1a2e22;
+        /* surface-dark */
+        font-weight: 800;
+        color: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 </style>
 {% endblock %}
