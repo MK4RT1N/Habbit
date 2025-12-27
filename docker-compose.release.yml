@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  habitflow:
+    image: l8tenever/habbit:latest
+    container_name: habitflow
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - SQLALCHEMY_DATABASE_URI=sqlite:////app/data/habitflow_v3.db
