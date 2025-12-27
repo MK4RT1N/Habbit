@@ -73,6 +73,23 @@ class Task(db.Model):
     completed = db.Column(db.Boolean, default=False)
     completed_date = db.Column(db.Date, nullable=True)
 
+class Achievement(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    slug = db.Column(db.String(50), unique=True, nullable=False)
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.String(255), nullable=False)
+    icon = db.Column(db.String(50), default='emoji_events')
+    condition_type = db.Column(db.String(50), nullable=False) # 'streak', 'habits_created', 'habits_completed', 'tasks_completed'
+    threshold = db.Column(db.Integer, nullable=False)
+
+class UserAchievement(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    achievement_id = db.Column(db.Integer, db.ForeignKey('achievement.id'), nullable=False)
+    date_earned = db.Column(db.Date, default=date.today)
+
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -200,6 +217,15 @@ def inject_calendar():
         })
     return {'week_calendar': week_dates}
 
+@app.context_processor
+def inject_version():
+    try:
+        with open('version.txt', 'r') as f:
+            version = f.read().strip()
+    except:
+        version = '1.0.0'
+    return {'version': version}
+
 # --- Routes ---
 
 @app.route('/')
@@ -253,6 +279,29 @@ def manage():
 def friends_page():
     return render_template('friends.html')
 
+@app.route('/achievements')
+@login_required
+def achievements_page():
+    check_new_achievements(current_user) # Check explicitly when visiting
+    all_achievements = Achievement.query.all()
+    user_achievements = UserAchievement.query.filter_by(user_id=current_user.id).all()
+    earned_ids = {ua.achievement_id for ua in user_achievements}
+    
+    # Prepare data for template
+    display_data = []
+    for ach in all_achievements:
+        display_data.append({
+            'title': ach.title,
+            'description': ach.description,
+            'icon': ach.icon,
+            'earned': ach.id in earned_ids,
+            'date': next((ua.date_earned for ua in user_achievements if ua.achievement_id == ach.id), None)
+        })
+    
+    return render_template('achievements.html', achievements=display_data)
+
+
+
 # --- API ---
 
 @app.route('/api/state')
@@ -292,6 +341,7 @@ def add_habit():
             db.session.add(f_habit)
             
         db.session.commit()
+        check_new_achievements(current_user)
         return jsonify({'success': True})
     except Exception as e:
         logger.error(f"Add habit error: {e}")
@@ -367,6 +417,7 @@ def toggle_habit():
 
         db.session.commit()
         check_global_streak(current_user)
+        check_new_achievements(current_user)
         if habit.is_shared:
             check_group_streak(habit.shared_id)
             
@@ -474,6 +525,7 @@ def toggle_task():
         task.completed = not task.completed
         if task.completed:
             task.completed_date = date.today()
+            check_new_achievements(current_user) # Check for task completion
         else:
             task.completed_date = None
             
@@ -597,7 +649,68 @@ def check_group_streak(shared_id):
     # But user wants "reset if one fails".
     # We can check "Yesterday" to be safe.
     # For MVP: We just store it. Real logic would require a Cron job or check on access.
+    # For MVP: We just store it. Real logic would require a Cron job or check on access.
     pass
+
+def init_achievements():
+    defaults = [
+        {'slug': 'first_habit', 'title': 'Der Anfang', 'description': 'Erstelle deine erste Gewohnheit.', 'icon': 'flag', 'condition': 'habits_created', 'threshold': 1},
+        {'slug': 'first_log', 'title': 'Erster Schritt', 'description': 'Erledige eine Gewohnheit zum ersten Mal.', 'icon': 'check_circle', 'condition': 'habits_completed', 'threshold': 1},
+        {'slug': 'streak_3', 'title': 'On Fire', 'description': 'Erreiche einen 3-Tage Streak.', 'icon': 'local_fire_department', 'condition': 'streak', 'threshold': 3},
+        {'slug': 'streak_7', 'title': 'Wochen-Warrior', 'description': 'Ein ganzer Wochen-Streak!', 'icon': 'calendar_view_week', 'condition': 'streak', 'threshold': 7},
+        {'slug': 'streak_30', 'title': 'Gewohnheitstier', 'description': '30 Tage Disziplin am Stück.', 'icon': 'workspace_premium', 'condition': 'streak', 'threshold': 30},
+        {'slug': 'tasks_10', 'title': 'Taskmaster', 'description': 'Erledige 10 Aufgaben.', 'icon': 'done_all', 'condition': 'tasks_completed', 'threshold': 10},
+        {'slug': 'habits_100', 'title': 'Century Club', 'description': '100 Mal eine Gewohnheit erledigt.', 'icon': 'military_tech', 'condition': 'habits_completed', 'threshold': 100},
+    ]
+    
+    for d in defaults:
+        if not Achievement.query.filter_by(slug=d['slug']).first():
+            db.session.add(Achievement(
+                slug=d['slug'],
+                title=d['title'],
+                description=d['description'],
+                icon=d['icon'],
+                condition_type=d['condition'],
+                threshold=d['threshold']
+            ))
+    db.session.commit()
+
+def check_new_achievements(user):
+    # Retrieve current stats
+    # 1. Habits Created
+    habits_created = Habit.query.filter_by(user_id=user.id).count()
+    
+    # 2. Habits Completed (Total Logs)
+    # Join Logic: HabitLog -> Habit (filter user_id)
+    # habits_completed = HabitLog.query.join(Habit).filter(Habit.user_id == user.id, HabitLog.completed == True).count()
+    # Simplified without explicit Join if backrefs work, or explicit join:
+    habits_completed = db.session.query(HabitLog).join(Habit).filter(Habit.user_id == user.id, HabitLog.completed == True).count()
+    
+    # 3. Tasks Completed
+    tasks_completed = Task.query.filter_by(user_id=user.id, completed=True).count()
+    
+    # 4. Current Streak
+    streak = user.current_streak
+    
+    # Check all achievements
+    all_achvs = Achievement.query.all()
+    user_achvs = {ua.achievement_id for ua in UserAchievement.query.filter_by(user_id=user.id).all()}
+    
+    for ach in all_achvs:
+        if ach.id in user_achvs:
+            continue
+            
+        earned = False
+        if ach.condition_type == 'habits_created' and habits_created >= ach.threshold: earned = True
+        elif ach.condition_type == 'habits_completed' and habits_completed >= ach.threshold: earned = True
+        elif ach.condition_type == 'tasks_completed' and tasks_completed >= ach.threshold: earned = True
+        elif ach.condition_type == 'streak' and streak >= ach.threshold: earned = True
+        
+        if earned:
+            db.session.add(UserAchievement(user_id=user.id, achievement_id=ach.id))
+            db.session.commit()
+            # Optional: Add flash message if triggered by user action
+            # flash(f'🏆 Erfolg freigeschaltet: {ach.title}!')
 
 @app.route('/manifest.json')
 def manifest():
@@ -609,6 +722,7 @@ def service_worker():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        init_achievements()
         # Auto-migration for scheduled_date if missing (SQLite specific hack for MVP)
         try:
             with db.engine.connect() as con:

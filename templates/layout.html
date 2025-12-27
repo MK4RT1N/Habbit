@@ -17,7 +17,7 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <meta name="theme-color" content="#102216">
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}?v={{ version }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
     <!-- Tailwind Config -->
     <script id="tailwind-config">
@@ -115,9 +115,10 @@
                     class="material-symbols-outlined {% if request.endpoint == 'friends_page' %}icon-filled text-primary{% endif %}">group</span>
                 <span>Freunde / Social</span>
             </a>
-            <a href="#"
-                class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-400 hover:bg-gray-800 transition-colors">
-                <span class="material-symbols-outlined">military_tech</span>
+            <a href="{{ url_for('achievements_page') }}"
+                class="flex items-center gap-4 px-4 py-3 rounded-xl {% if request.endpoint == 'achievements_page' %}bg-primary/10 text-white font-bold{% else %}text-gray-400 hover:bg-gray-800 transition-colors{% endif %}">
+                <span
+                    class="material-symbols-outlined {% if request.endpoint == 'achievements_page' %}icon-filled text-primary{% endif %}">military_tech</span>
                 <span>Erfolge</span>
             </a>
             <a href="#"
@@ -180,6 +181,28 @@
     <main class="flex-grow w-full max-w-5xl mx-auto">
         {% block content %}{% endblock %}
     </main>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (!sidebar || !overlay) return;
+
+            if (sidebar.classList.contains('-translate-x-full')) {
+                // Sidebar öffnen
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
+                overlay.classList.add('opacity-100');
+                document.body.style.overflow = 'hidden';
+            } else {
+                // Sidebar schließen
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+                overlay.classList.remove('opacity-100');
+                document.body.style.overflow = '';
+            }
+        }
+    </script>
 </body>
 
 </html>

@@ -459,25 +459,7 @@ function closeDetails() {
     getEl('habit-details-modal').classList.add('hidden');
 }
 
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    if (!sidebar || !overlay) return;
 
-    if (sidebar.classList.contains('-translate-x-full')) {
-        // Sidebar öffnen
-        sidebar.classList.remove('-translate-x-full');
-        overlay.classList.remove('opacity-0', 'pointer-events-none');
-        overlay.classList.add('opacity-100');
-        document.body.style.overflow = 'hidden';
-    } else {
-        // Sidebar schließen
-        sidebar.classList.add('-translate-x-full');
-        overlay.classList.add('opacity-0', 'pointer-events-none');
-        overlay.classList.remove('opacity-100');
-        document.body.style.overflow = '';
-    }
-}
 
 // Global Bindings
 window.toggleHabit = toggleHabit;
@@ -492,4 +474,3 @@ window.submitEntry = submitEntry;
 window.showHabitDetails = showHabitDetails;
 window.closeDetails = closeDetails;
 window.toggleHabitFromDetail = toggleHabitFromDetail;
-window.toggleSidebar = toggleSidebar;
