@@ -894,13 +894,19 @@ def api_login():
 def sync_usage():
     try:
         data = request.json
-        # User ID handling: Try to get from data, else fallback (though auth is best)
-        user_id = data.get('user_id')
+        usage_list = []
+        user_id = None
         
-        # Flexibility for usage list key
-        usage_list = data.get('usage', [])
-        if not usage_list and 'data' in data:
-            usage_list = data.get('data')
+        # Check if data is a list (direct list of usage items) or a dict
+        if isinstance(data, list):
+            usage_list = data
+            # If list, user_id is missing from body, rely on fallback below
+        else:
+            # It's a dict
+            user_id = data.get('user_id')
+            usage_list = data.get('usage', [])
+            if not usage_list and 'data' in data:
+                usage_list = data.get('data')
         
         if not user_id:
              # Fallback: User snippet used User.query.first()
