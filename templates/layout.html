@@ -132,6 +132,12 @@
                     class="material-symbols-outlined {% if request.endpoint == 'handyzeit' %}icon-filled{% endif %}">smartphone</span>
                 <span>Handyzeit</span>
             </a>
+            <a href="{{ url_for('focus_dashboard') }}"
+                class="flex items-center gap-4 px-4 py-3 rounded-2xl {% if request.endpoint == 'focus_dashboard' %}bg-primary/10 text-primary font-bold{% else %}text-gray-400 hover:bg-white/5 transition-colors{% endif %}">
+                <span
+                    class="material-symbols-outlined {% if request.endpoint == 'focus_dashboard' %}icon-filled{% endif %}">lock_clock</span>
+                <span>App Focus</span>
+            </a>
 
             <div class="h-px bg-gray-800/50 my-4 mx-4"></div>
 
