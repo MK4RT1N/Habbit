@@ -87,7 +87,7 @@ function render() {
 
             const titleClass = isCompleted ? 'opacity-40 line-through decoration-2 decoration-primary/50' : 'text-white';
 
-            let progressHtml = `<p class="text-xs text-white/40 font-bold uppercase tracking-wider">${habit.frequency === 'daily' ? 'Täglich' : (habit.frequency === 'specific' ? 'Spezifisch' : 'Flexibel')}</p>`;
+            let progressHtml = `<p class="text-xs text-white/40 font-bold uppercase tracking-wider">${habit.shared_info ? habit.shared_info : (habit.frequency === 'daily' ? 'Täglich' : (habit.frequency === 'specific' ? 'Spezifisch' : 'Flexibel'))}</p>`;
             if (habit.target > 1) {
                 const progPct = Math.min((habit.current / habit.target) * 100, 100);
                 progressHtml = `
@@ -388,7 +388,9 @@ async function submitEntry() {
         if (success) closeAddEntryModal();
     } else {
         const offset = parseInt(getEl('new-task-date-modal').value);
-        const success = await apiCallWithSync('add_task', { text, offset });
+        const friendIds = [];
+        document.querySelectorAll('.friend-checkbox-modal:checked').forEach(cb => friendIds.push(parseInt(cb.value)));
+        const success = await apiCallWithSync('add_task', { text, offset, friends: friendIds });
         if (success) closeAddEntryModal();
     }
 }

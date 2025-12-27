@@ -72,6 +72,10 @@ class Task(db.Model):
     scheduled_date = db.Column(db.Date, default=date.today)
     completed = db.Column(db.Boolean, default=False)
     completed_date = db.Column(db.Date, nullable=True)
+    
+    # Sharing
+    is_shared = db.Column(db.Boolean, default=False)
+    shared_id = db.Column(db.String(36), nullable=True)
 
 class Achievement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -130,10 +134,31 @@ def compute_user_state(user):
                 current_val = log.value
                 completed = log.completed
 
-        # Group Info
-        shared_info = ""
         if h.is_shared:
-             shared_info = "(Gruppe)"
+            # Shared logic: Check if ALL group members have completed it for today
+            group_members_habits = Habit.query.filter_by(shared_id=h.shared_id).all()
+            all_members_ready = True
+            
+            # For progress reporting, we might want to see how many are done
+            members_done = 0
+            total_members = len(group_members_habits)
+            
+            for mh in group_members_habits:
+                m_log = HabitLog.query.filter_by(habit_id=mh.id, date=today).first()
+                if m_log and m_log.completed:
+                    members_done += 1
+                else:
+                    all_members_ready = False
+            
+            # The habit is only "COMPLETED" for the dashboard if EVERYONE is done
+            if not all_members_ready:
+                completed = False
+                shared_info = f"({members_done}/{total_members})"
+            else:
+                completed = True
+                shared_info = "(Gruppe Erledigt)"
+        else:
+            shared_info = ""
 
         habit_data.append({
             'id': h.id, 
@@ -181,10 +206,32 @@ def compute_user_state(user):
             elif days_diff == 0: tag = "Heute"
             # Note: Future tasks are filtered out above, but if we wanted to show them later, we could add logic here.
         
+        # If shared, check if GLOBAL group is done
+        if t.is_shared:
+            group_members_tasks = Task.query.filter_by(shared_id=t.shared_id, scheduled_date=t.scheduled_date).all()
+            all_members_ready = True
+            members_done = 0
+            total_members = len(group_members_tasks)
+            
+            for mt in group_members_tasks:
+                if mt.completed:
+                    members_done += 1
+                else:
+                    all_members_ready = False
+            
+            if not all_members_ready:
+                completed = False
+                tag = f"({members_done}/{total_members}) " + tag
+            else:
+                completed = True
+                tag = "(Gruppe Erledigt) " + tag
+        else:
+            completed = t.completed
+
         task_data.append({
             'id': t.id,
             'text': t.text,
-            'completed': t.completed,
+            'completed': completed,
             'tag': tag
         })
     
@@ -360,13 +407,26 @@ def add_task():
         data = request.json
         text = data.get('text')
         date_offset = int(data.get('offset', 0)) # 0 = today, 1 = tomorrow ...
+        friend_ids = data.get('friends', [])
         
         if not text: return jsonify({'success': False})
         
         s_date = date.today() + timedelta(days=date_offset)
         
-        t = Task(text=text, user_id=current_user.id, scheduled_date=s_date)
+        shared_id = None
+        is_shared = len(friend_ids) > 0
+        if is_shared:
+            shared_id = str(uuid.uuid4())
+
+        # Create for self
+        t = Task(text=text, user_id=current_user.id, scheduled_date=s_date, is_shared=is_shared, shared_id=shared_id)
         db.session.add(t)
+
+        # Create for friends
+        for fid in friend_ids:
+            f_task = Task(text=text, user_id=fid, scheduled_date=s_date, is_shared=True, shared_id=shared_id)
+            db.session.add(f_task)
+
         db.session.commit()
         return jsonify({'success': True})
     except Exception as e:
@@ -741,8 +801,20 @@ def check_global_streak(user):
 
     all_done = True
     for h in habits:
+        # Check if individual habit is completed
         log = HabitLog.query.filter_by(habit_id=h.id, date=today).first()
-        if not log or not log.completed:
+        is_habit_done = (log and log.completed)
+        
+        # If shared, check if GLOBAL group is done
+        if h.is_shared:
+            group_members_habits = Habit.query.filter_by(shared_id=h.shared_id).all()
+            for mh in group_members_habits:
+                m_log = HabitLog.query.filter_by(habit_id=mh.id, date=today).first()
+                if not (m_log and m_log.completed):
+                    is_habit_done = False
+                    break
+        
+        if not is_habit_done:
             all_done = False
             break
     
@@ -839,11 +911,17 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         init_achievements()
-        # Auto-migration for scheduled_date if missing (SQLite specific hack for MVP)
-        try:
-            with db.engine.connect() as con:
-                con.execute(db.text("ALTER TABLE task ADD COLUMN scheduled_date DATE"))
-                print("Migrated task table")
-        except Exception as e:
-            pass # Column likely exists
+        # Auto-migration for new Task columns if missing
+        with db.engine.connect() as con:
+            for cmd in [
+                "ALTER TABLE task ADD COLUMN scheduled_date DATE",
+                "ALTER TABLE task ADD COLUMN is_shared BOOLEAN DEFAULT 0",
+                "ALTER TABLE task ADD COLUMN shared_id VARCHAR(36)"
+            ]:
+                try:
+                    con.execute(db.text(cmd))
+                    con.commit()
+                except Exception:
+                    pass 
+        print("Database migrations checked.")
     app.run(debug=True, host='0.0.0.0', port=5000)
