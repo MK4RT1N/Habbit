@@ -1,4 +1,3 @@
-
 services:
   habitflow:
     image: l8tenever/habbit:latest
@@ -7,9 +6,6 @@ services:
     ports:
       - "9995:5000"
     volumes:
-      - habit_data:/app/data
+      - ./data:/app/data
     environment:
       - SQLALCHEMY_DATABASE_URI=sqlite:////app/data/habitflow_v3.db
-
-volumes:
-  habit_data:
