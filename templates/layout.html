@@ -10,13 +10,13 @@
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap"
         rel="stylesheet" />
-    <!-- Google Material Symbols (Google Icons) -->
+    <!-- Google Material Symbols -->
     <link
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
         rel="stylesheet" />
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <meta name="theme-color" content="#1e1e2e">
+    <meta name="theme-color" content="#102216">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
     <!-- Tailwind Config -->
@@ -62,12 +62,18 @@
         .icon-filled {
             font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
+
+        body {
+            min-height: max(auto, 100dvh);
+            /* min-height: max(884px, 100dvh); Removed for better responsive behavior unless explicitly stuck */
+        }
     </style>
 </head>
 
-<body class="bg-background-dark text-white font-display min-h-screen flex flex-col">
-    <!-- Top App Bar (Only header is sticky) -->
+<body class="bg-background-dark text-white font-display overflow-x-hidden pb-12 min-h-screen">
+    <!-- Top App Bar -->
     <div class="sticky top-0 z-50 bg-background-dark/95 backdrop-blur-md transition-colors duration-300">
+
         <div class="grid grid-cols-3 items-center p-4">
             <div class="flex justify-start">
                 <a href="{{ url_for('logout') }}"
@@ -86,27 +92,36 @@
             </div>
         </div>
 
-        <!-- Weekly Calendar Strip -->
-        <div class="flex overflow-x-auto no-scrollbar gap-3 px-4 pb-4 pt-1">
+        <!-- Weekly Calendar Strip (Calculated to show exactly 5 items, taller height) -->
+        <div id="calendar-strip"
+            class="flex overflow-x-auto no-scrollbar gap-3 px-4 pb-4 pt-1 snap-x snap-mandatory scroll-px-4">
             {% for d in week_calendar %}
             {% if d.is_today %}
-            <!-- Today (Active) -->
-            <button
-                class="flex flex-col items-center justify-center min-w-[60px] h-[72px] rounded-2xl bg-primary text-[#0d1b12] shadow-[0_0_15px_rgba(19,236,91,0.4)] transform scale-105 transition-all">
+            <button id="today-btn"
+                class="flex flex-col items-center justify-center w-[calc((100%-3rem)/5)] shrink-0 h-[96px] rounded-2xl bg-primary text-[#0d1b12] shadow-[0_0_15px_rgba(19,236,91,0.4)] transform scale-105 transition-all snap-center">
                 <span class="text-xs font-bold mb-1">{{ d.day_name }}</span>
                 <span class="text-lg font-extrabold">{{ d.day_num }}</span>
                 <div class="size-1 bg-[#0d1b12] rounded-full mt-1"></div>
             </button>
             {% else %}
-            <!-- Other Day -->
             <button
-                class="flex flex-col items-center justify-center min-w-[60px] h-[72px] rounded-2xl bg-surface-dark border border-transparent text-gray-400">
+                class="flex flex-col items-center justify-center w-[calc((100%-3rem)/5)] shrink-0 h-[96px] rounded-2xl bg-surface-dark border border-transparent text-gray-400 snap-center">
                 <span class="text-xs font-medium mb-1">{{ d.day_name }}</span>
                 <span class="text-lg font-bold">{{ d.day_num }}</span>
             </button>
             {% endif %}
             {% endfor %}
         </div>
+
+        <script>
+            // Center the "Today" button on load
+            window.addEventListener('load', () => {
+                const todayBtn = document.getElementById('today-btn');
+                if (todayBtn) {
+                    todayBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            });
+        </script>
 
         {% with messages = get_flashed_messages() %}
         {% if messages %}
@@ -117,10 +132,11 @@
         </div>
         {% endif %}
         {% endwith %}
+
     </div>
 
-    <!-- Main Content scrolls underneath or expands the body -->
-    <main class="flex-grow">
+    <!-- Main Content centered -->
+    <main class="flex-grow w-full">
         {% block content %}{% endblock %}
     </main>
 </body>

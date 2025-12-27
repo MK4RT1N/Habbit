@@ -189,7 +189,7 @@ def inject_calendar():
     # Get start of current week (Monday)
     start = today - timedelta(days=today.weekday())
     week_dates = []
-    days_de = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+    days_de = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     for i in range(7):
         d = start + timedelta(days=i)
         week_dates.append({
