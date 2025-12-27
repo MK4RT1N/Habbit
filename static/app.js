@@ -60,62 +60,91 @@ function populateTaskDates() {
     }
 }
 
-function render() {
-    const streakCount = getEl('streak-count');
-    const habitList = getEl('habit-list');
+// Render Hero Stats
+const totalHabits = state.habits.length;
+let completedHabits = 0;
+state.habits.forEach(h => {
+    if (h.current >= h.target) completedHabits++;
+});
 
-    if (streakCount) streakCount.innerText = state.streak;
+const pct = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0;
 
-    if (habitList) {
-        habitList.innerHTML = '';
-        state.habits.forEach((habit, index) => {
-            const div = document.createElement('div');
-            const isCompleted = habit.completed;
-            const progressText = habit.target > 1 ? `(${habit.current}/${habit.target})` : '';
+if (getEl('hero-percentage')) getEl('hero-percentage').innerText = `${pct}%`;
+if (getEl('hero-progress-text')) getEl('hero-progress-text').innerText = `${completedHabits} von ${totalHabits} erledigt`;
+if (getEl('hero-bar')) getEl('hero-bar').style.width = `${pct}%`;
 
-            let extraInfo = '';
-            if (habit.shared) extraInfo += ' <span style="color: var(--secondary-color); font-size: 0.8rem;">👥</span>';
-            // if(habit.shared_info) extraInfo += ` <span style="font-size: 0.7rem;">${habit.shared_info}</span>`;
+// Circle Progress (Stroke-dasharray logic: 100 is full)
+if (getEl('hero-circle-path')) {
+    getEl('hero-circle-path').setAttribute('stroke-dasharray', `${pct}, 100`);
+}
 
-            div.className = `habit-item ${isCompleted ? 'completed' : ''}`;
-            div.innerHTML = `
-                <div class="habit-content" style="cursor: pointer; flex-grow: 1;" onclick="showHabitDetails(${habit.id})">
-                     <span class="habit-text">${habit.text} <small style="opacity: 0.6; font-size: 0.8rem;">${progressText}</small>${extraInfo}</span>
+// Render Habits
+if (habitList) {
+    habitList.innerHTML = '';
+    state.habits.forEach((habit, index) => {
+        const div = document.createElement('div');
+        const isCompleted = habit.completed;
+        const progress = habit.target > 1 ? `${habit.current}/${habit.target}` : '';
+
+        // Icon selection based on text (simple heuristic for MVP)
+        let icon = 'circle';
+        if (habit.text.toLowerCase().includes('run') || habit.text.toLowerCase().includes('lauf')) icon = 'directions_run';
+        else if (habit.text.toLowerCase().includes('wats') || habit.text.toLowerCase().includes('wasser')) icon = 'water_drop';
+        else if (habit.text.toLowerCase().includes('read') || habit.text.toLowerCase().includes('les')) icon = 'menu_book';
+        else if (habit.text.toLowerCase().includes('sleep') || habit.text.toLowerCase().includes('schlaf')) icon = 'bedtime';
+        else if (habit.text.toLowerCase().includes('medit')) icon = 'self_improvement';
+
+        const activeClass = isCompleted
+            ? 'bg-primary border-primary text-[#0d1b12]'
+            : 'border-gray-200 dark:border-gray-600 text-transparent hover:border-primary hover:text-primary';
+
+        const titleClass = isCompleted ? 'opacity-50 line-through decoration-2 decoration-primary/50' : '';
+
+        div.className = "group flex items-center gap-4 p-3 bg-surface-light dark:bg-surface-dark rounded-2xl shadow-sm border border-transparent hover:border-primary/20 transition-all";
+        div.innerHTML = `
+                <div class="flex shrink-0 items-center justify-center size-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                    <span class="material-symbols-outlined">${icon}</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div class="checkbox" onclick="toggleHabit(${index})">
-                         <span class="check-icon" style="${isCompleted ? 'opacity: 1; transform: scale(1);' : ''}">${isCompleted ? '✓' : ''}</span>
-                    </div>
+                <div class="flex-1 min-w-0 cursor-pointer" onclick="showHabitDetails(${habit.id})">
+                    <h4 class="text-[#0d1b12] dark:text-white font-bold text-base truncate ${titleClass}">${habit.text}</h4>
+                    <p class="text-xs text-gray-500 font-medium">${habit.frequency === 'daily' ? 'Täglich' : 'Flexibel'} ${progress ? '• ' + progress : ''}</p>
                 </div>
+                <button onclick="toggleHabit(${index})" class="shrink-0 size-8 rounded-full border-2 flex items-center justify-center transition-all active:scale-90 ${activeClass}">
+                    <span class="material-symbols-outlined text-lg font-bold">check</span>
+                </button>
             `;
-            habitList.appendChild(div);
-        });
-    }
+        habitList.appendChild(div);
+    });
+}
 
-    const taskList = getEl('task-list');
-    if (taskList) {
-        taskList.innerHTML = '';
-        if (state.tasks) {
-            state.tasks.forEach((task, index) => {
-                const div = document.createElement('div');
-                const isCompleted = task.completed;
-                let tagHtml = '';
-                if (task.tag) tagHtml = `<span style="font-size: 0.7rem; color: #ff9800; border: 1px solid #ff9800; padding: 2px 4px; border-radius: 4px; margin-left: 5px;">${task.tag}</span>`;
+// Render Tasks
+const taskList = getEl('task-list');
+if (taskList) {
+    taskList.innerHTML = '';
+    if (state.tasks) {
+        state.tasks.forEach((task, index) => {
+            const div = document.createElement('div');
+            const isCompleted = task.completed;
+            let tagHtml = '';
+            if (task.tag) tagHtml = `<span class="ml-2 text-[10px] font-bold uppercase tracking-wider text-orange-500 border border-orange-500 px-1 rounded">${task.tag}</span>`;
 
-                div.className = `habit-item ${isCompleted ? 'completed' : ''}`;
-                div.style.borderLeft = isCompleted ? '4px solid var(--success-color)' : '4px solid var(--secondary-color)';
+            const checkboxClass = isCompleted
+                ? 'bg-primary border-primary text-[#0d1b12]'
+                : 'border-gray-300 dark:border-gray-600 hover:border-primary';
 
-                div.innerHTML = `
-                    <div class="habit-content" style="flex-grow: 1;">
-                         <span class="habit-text">${task.text} ${tagHtml}</span>
+            div.className = `flex items-center gap-3 p-3 rounded-xl bg-surface-light dark:bg-surface-dark shadow-sm border-l-4 ${isCompleted ? 'border-primary' : 'border-gray-300 dark:border-gray-700'}`;
+
+            div.innerHTML = `
+                    <div class="flex-1">
+                         <span class="text-sm font-bold text-[#0d1b12] dark:text-white ${isCompleted ? 'line-through opacity-50' : ''}">${task.text}</span>
+                         ${tagHtml}
                     </div>
-                    <div class="checkbox" onclick="toggleTask(${index})">
-                         <span class="check-icon" style="${isCompleted ? 'opacity: 1; transform: scale(1);' : ''}">${isCompleted ? '✓' : ''}</span>
-                    </div>
+                    <button onclick="toggleTask(${index})" class="size-6 rounded border-2 flex items-center justify-center transition-all ${checkboxClass}">
+                         <span class="material-symbols-outlined text-sm font-bold ${isCompleted ? '' : 'hidden'}">check</span>
+                    </button>
                 `;
-                taskList.appendChild(div);
-            });
-        }
+            taskList.appendChild(div);
+        });
     }
 }
 
@@ -318,9 +347,9 @@ async function showHabitDetails(id) {
             data.history.reverse().forEach(entry => {
                 const bar = document.createElement('div');
                 bar.style.flex = '1';
-                bar.style.background = entry.completed ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)';
+                bar.style.backgroundColor = entry.completed ? '#13ec5b' : 'rgba(255,255,255,0.1)';
                 bar.style.borderRadius = '4px';
-                bar.title = `${entry.date}: ${entry.value}`;
+                bar.style.height = entry.completed ? '100%' : '20%';
                 histContainer.appendChild(bar);
             });
         }
