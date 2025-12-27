@@ -6,7 +6,7 @@ services:
     container_name: habitflow
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "9995:5000"
     volumes:
       - ./data:/app/data
     environment:
