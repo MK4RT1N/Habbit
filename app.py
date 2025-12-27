@@ -935,15 +935,28 @@ def sync_usage():
 @app.route('/api/get_config', methods=['GET'])
 def get_config():
     try:
+        # Try to find user in multiple ways to be robus
         user_id = request.args.get('user_id')
-        if not user_id:
-             return jsonify({"status": "error", "message": "Missing user_id"}), 400
+        if not user_id: user_id = request.args.get('id')
         
-        limits = AppLimit.query.filter_by(user_id=user_id).all()
+        user = None
+        if user_id:
+            user = User.query.get(user_id)
+        elif current_user.is_authenticated:
+            user = current_user
+        else:
+            # Fallback: User snippet used User.query.first(), so we do that too for ease of use
+            user = User.query.first()
+            
+        if not user:
+             return jsonify({"status": "error", "message": "User not found"}), 404
+        
+        limits = AppLimit.query.filter_by(user_id=user.id).all()
         limit_data = [{"packageName": l.package_name, "limit": l.limit_minutes} for l in limits]
         
         return jsonify({"limits": limit_data, "status": "success"})
     except Exception as e:
+        logger.error(f"Config error: {e}")
         return jsonify({"status": "error"})
 
 @app.route('/focus-dashboard')
