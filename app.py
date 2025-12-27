@@ -883,6 +883,8 @@ def api_login():
         user = User.query.filter_by(username=username).first()
         # Use secure hash check properly
         if user and check_password_hash(user.password, password):
+            # IMPORTANT: Establish session for this user!
+            login_user(user)
             return jsonify({"status": "success", "user_id": user.id, "username": user.username})
         
         return jsonify({"status": "error", "message": "Invalid credentials"}), 401
@@ -900,7 +902,6 @@ def sync_usage():
         # Check if data is a list (direct list of usage items) or a dict
         if isinstance(data, list):
             usage_list = data
-            # If list, user_id is missing from body, rely on fallback below
         else:
             # It's a dict
             user_id = data.get('user_id')
@@ -908,13 +909,18 @@ def sync_usage():
             if not usage_list and 'data' in data:
                 usage_list = data.get('data')
         
+        # Priority 1: ID from Request (if sent)
+        # Priority 2: Session User (if logged in via /api/login)
+        # Priority 3: URL Parameter
+        if not user_id and current_user.is_authenticated:
+            user_id = current_user.id
+            
         if not user_id:
-             # Fallback: User snippet used User.query.first()
-             first_user = User.query.first()
-             if first_user:
-                 user_id = first_user.id
-             else:
-                 return jsonify({"status": "error", "message": "Missing user_id and no users found"}), 400
+             user_id = request.args.get('user_id')
+
+        if not user_id:
+             # Strict Mode: Fail if we don't know who this is
+             return jsonify({"status": "error", "message": "Authentication required or user_id missing"}), 401
              
         for item in usage_list:
             # Support multiple key names from different app versions
