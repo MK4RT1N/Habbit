@@ -1,24 +1,327 @@
-{% extends "layout.html" %}
+<!DOCTYPE html>
+<html lang="de">
 
-{% block content %}
-<div class="card" style="max-width: 400px; margin: 0 auto; width: 100%;">
-    <div class="card-header" style="justify-content: center;">
-        <h2 class="card-title" style="font-size: 1.5rem;">Registrieren</h2>
-    </div>
-    <form action="{{ url_for('register') }}" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
-        <div>
-            <label for="username" style="color: var(--subtext-color); font-size: 0.9rem;">Username</label>
-            <input type="text" id="username" name="username" required placeholder="Wähle einen Username">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Registrieren - HabitFlow</title>
+
+    <!-- Google Fonts: Manrope -->
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+
+    <!-- Google Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+
+    <style>
+        /* CSS Variablen für Farben und Styling */
+        :root {
+            --primary: #13ec5b;
+            --primary-dark: #0fb645;
+            --bg-light: #f6f8f6;
+            --bg-dark: #102216;
+            --surface-light: #ffffff;
+            --surface-dark: #1a2e22;
+            --text-light: #0f172a;
+            --text-dark: #ffffff;
+            --slate-400: #94a3b8;
+            --slate-200: #e2e8f0;
+            --slate-700: #334155;
+            --radius: 1.5rem;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Manrope', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Header */
+        .logo-box {
+            width: 72px;
+            height: 72px;
+            background: rgba(19, 236, 91, 0.1);
+            border: 1px solid rgba(19, 236, 91, 0.2);
+            border-radius: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.025em;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.4);
+            text-align: center;
+            margin-bottom: 3rem;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            padding: 0 1rem;
+        }
+
+        /* Formular */
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding-left: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .input-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .input-wrapper .icon {
+            position: absolute;
+            left: 1.25rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.2);
+            pointer-events: none;
+            font-size: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 1.125rem 1.25rem 1.125rem 3.5rem;
+            border-radius: var(--radius);
+            background-color: var(--surface-dark) !important;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(19, 236, 91, 0.1);
+        }
+
+        .pass-toggle {
+            position: absolute;
+            right: 1.25rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-btn {
+            background-color: var(--primary);
+            color: #102216;
+            border: none;
+            padding: 1.125rem;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 20px -5px rgba(19, 236, 91, 0.3);
+        }
+
+        .login-btn:active {
+            transform: scale(0.97);
+        }
+
+        .login-btn:hover {
+            background-color: #00d648;
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px -5px rgba(19, 236, 91, 0.4);
+        }
+
+        .footer {
+            margin-top: 3.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.3);
+            font-weight: 500;
+        }
+
+        .footer a {
+            color: var(--primary);
+            font-weight: 800;
+            text-decoration: none;
+            margin-left: 0.5rem;
+            transition: opacity 0.2s;
+        }
+
+        .footer a:hover {
+            opacity: 0.8;
+        }
+
+        /* Flash Messages */
+        .flash-messages {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .flash-message {
+            padding: 1rem;
+            border-radius: 1rem;
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        /* Hintergrund-Deko */
+        .blob {
+            position: fixed;
+            z-index: -1;
+            border-radius: 50%;
+            background: var(--primary);
+            filter: blur(100px);
+            opacity: 0.08;
+        }
+
+        .blob-1 {
+            width: 400px;
+            height: 400px;
+            top: -150px;
+            left: -150px;
+            background: var(--primary);
+        }
+
+        .blob-2 {
+            width: 350px;
+            height: 350px;
+            bottom: -100px;
+            right: -100px;
+            background: var(--primary);
+        }
+
+        .blob-3 {
+            width: 300px;
+            height: 300px;
+            top: 40%;
+            left: 60%;
+            background: #3b82f6;
+            opacity: 0.05;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="logo-box">
+            <span class="material-symbols-outlined"
+                style="font-size: 44px; color: var(--primary); font-variation-settings: 'FILL' 1">eco</span>
         </div>
-        <div>
-            <label for="password" style="color: var(--subtext-color); font-size: 0.9rem;">Passwort</label>
-            <input type="password" id="password" name="password" required placeholder="Wähle ein Passwort">
+        <h1>Konto erstellen</h1>
+        <p class="subtitle">Werde Teil der HabitFlow Community und starte deine Reise zu besseren Gewohnheiten.</p>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for message in messages %}
+            <div class="flash-message">{{ message }}</div>
+            {% endfor %}
         </div>
-        <button type="submit" class="btn" style="justify-content: center;">Registrieren</button>
-    </form>
-    <div style="margin-top: 1rem; text-align: center; font-size: 0.9rem;">
-        <a href="{{ url_for('login') }}" style="color: var(--secondary-color); text-decoration: none;">Bereits einen
-            Account? Login</a>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Formular -->
+        <form action="{{ url_for('register') }}" method="POST">
+            <div class="input-group">
+                <label for="username">Benutzername</label>
+                <div class="input-wrapper">
+                    <span class="material-symbols-outlined icon">person</span>
+                    <input id="username" name="username" placeholder="Dein Benutzername" type="text" required
+                        autocomplete="username" />
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="password">Passwort</label>
+                <div class="input-wrapper">
+                    <span class="material-symbols-outlined icon">lock</span>
+                    <input id="password" name="password" placeholder="••••••••" type="password" required
+                        autocomplete="new-password" />
+                    <button id="toggle-password" class="pass-toggle" type="button">
+                        <span class="material-symbols-outlined">visibility</span>
+                    </button>
+                </div>
+            </div>
+
+            <button class="login-btn" type="submit">Jetzt Registrieren</button>
+        </form>
+
+        <div class="footer">
+            Bereits ein Konto? <a href="{{ url_for('login') }}">Anmelden</a>
+        </div>
     </div>
-</div>
-{% endblock %}
+
+    <script>
+        const passInput = document.getElementById('password');
+        const toggleBtn = document.getElementById('toggle-password');
+        const icon = toggleBtn.querySelector('.material-symbols-outlined');
+
+        toggleBtn.addEventListener('click', () => {
+            const type = passInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passInput.setAttribute('type', type);
+            icon.textContent = type === 'password' ? 'visibility' : 'visibility_off';
+        });
+    </script>
+</body>
+
+</html>
