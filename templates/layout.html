@@ -77,20 +77,20 @@
     </style>
 </head>
 
-<body class="bg-background-dark text-white font-display overflow-x-hidden pb-12 min-h-screen">
+<body class="bg-background-dark text-white font-display overflow-x-hidden pb-24 min-h-screen">
 
     <!-- Sidebar Overlay / Backdrop -->
-    <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-[60] opacity-0 pointer-events-none"
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/70 z-[60] opacity-0 pointer-events-none"
         onclick="toggleSidebar()"></div>
 
     <!-- Sidebar Navigation -->
     <aside id="sidebar"
-        class="fixed top-0 left-0 h-full w-[280px] bg-surface-dark z-[70] shadow-2xl -translate-x-full flex flex-col border-r border-gray-800/50">
+        class="fixed top-0 left-0 h-full w-[280px] bg-surface-dark z-[70] shadow-2xl -translate-x-full flex flex-col border-r border-gray-800/10 transition-transform duration-300 ease-out">
 
         <!-- Profilbereich -->
-        <div class="p-6 border-b border-gray-800">
+        <div class="p-6 border-b border-gray-800/50">
             <div class="flex items-center gap-4">
-                <div class="size-12 rounded-2xl border-2 border-primary bg-cover bg-center shadow-[0_0_10px_rgba(19,236,91,0.2)]"
+                <div class="size-12 rounded-2xl border-2 border-primary bg-cover bg-center shadow-[0_0_15px_rgba(19,236,91,0.2)]"
                     style='background-image: url("https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=2680&auto=format&fit=crop");'>
                 </div>
                 <div class="flex flex-col">
@@ -102,68 +102,62 @@
         </div>
 
         <!-- Navigations-Links -->
-        <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1 no-scrollbar">
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1 no-scrollbar">
             <a href="{{ url_for('index') }}"
-                class="flex items-center gap-4 px-4 py-3 rounded-xl {% if request.endpoint == 'index' %}bg-primary/10 text-white font-bold{% else %}text-gray-400 hover:bg-gray-800 transition-colors{% endif %}">
+                class="flex items-center gap-4 px-4 py-3 rounded-2xl {% if request.endpoint == 'index' %}bg-primary/10 text-primary font-bold{% else %}text-gray-400 hover:bg-white/5 transition-colors{% endif %}">
                 <span
-                    class="material-symbols-outlined {% if request.endpoint == 'index' %}icon-filled text-primary{% endif %}">dashboard</span>
+                    class="material-symbols-outlined {% if request.endpoint == 'index' %}icon-filled{% endif %}">dashboard</span>
                 <span>Dashboard</span>
             </a>
             <a href="{{ url_for('friends_page') }}"
-                class="flex items-center gap-4 px-4 py-3 rounded-xl {% if request.endpoint == 'friends_page' %}bg-primary/10 text-white font-bold{% else %}text-gray-400 hover:bg-gray-800 transition-colors{% endif %}">
+                class="flex items-center gap-4 px-4 py-3 rounded-2xl {% if request.endpoint == 'friends_page' %}bg-primary/10 text-primary font-bold{% else %}text-gray-400 hover:bg-white/5 transition-colors{% endif %}">
                 <span
-                    class="material-symbols-outlined {% if request.endpoint == 'friends_page' %}icon-filled text-primary{% endif %}">group</span>
+                    class="material-symbols-outlined {% if request.endpoint == 'friends_page' %}icon-filled{% endif %}">group</span>
                 <span>Freunde / Social</span>
             </a>
             <a href="{{ url_for('achievements_page') }}"
-                class="flex items-center gap-4 px-4 py-3 rounded-xl {% if request.endpoint == 'achievements_page' %}bg-primary/10 text-white font-bold{% else %}text-gray-400 hover:bg-gray-800 transition-colors{% endif %}">
+                class="flex items-center gap-4 px-4 py-3 rounded-2xl {% if request.endpoint == 'achievements_page' %}bg-primary/10 text-primary font-bold{% else %}text-gray-400 hover:bg-white/5 transition-colors{% endif %}">
                 <span
-                    class="material-symbols-outlined {% if request.endpoint == 'achievements_page' %}icon-filled text-primary{% endif %}">military_tech</span>
+                    class="material-symbols-outlined {% if request.endpoint == 'achievements_page' %}icon-filled{% endif %}">military_tech</span>
                 <span>Erfolge</span>
             </a>
             <a href="#"
-                class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-400 hover:bg-gray-800 transition-colors">
+                class="flex items-center gap-4 px-4 py-3 rounded-2xl text-gray-400 hover:bg-white/5 transition-colors">
                 <span class="material-symbols-outlined">monitoring</span>
                 <span>Statistiken</span>
             </a>
 
-            <div class="h-px bg-gray-800 my-2 mx-4"></div>
+            <div class="h-px bg-gray-800/50 my-4 mx-4"></div>
 
             <a href="#"
-                class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-400 hover:bg-gray-800 transition-colors">
+                class="flex items-center gap-4 px-4 py-3 rounded-2xl text-gray-400 hover:bg-white/5 transition-colors">
                 <span class="material-symbols-outlined">settings</span>
                 <span>Einstellungen</span>
             </a>
         </nav>
 
         <!-- Footer -->
-        <div class="p-6 border-t border-gray-800">
+        <div class="p-6 border-t border-gray-800/50">
             <a href="{{ url_for('logout') }}"
-                class="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-red-500 hover:bg-red-900/10 transition-colors">
+                class="flex items-center gap-4 w-full px-4 py-3 rounded-2xl text-red-400 hover:bg-red-500/10 transition-colors">
                 <span class="material-symbols-outlined">logout</span>
                 <span class="font-bold">Abmelden</span>
             </a>
         </div>
     </aside>
 
-    <!-- Top App Bar (Consistent height on all pages) -->
-    <header class="sticky top-0 z-50 bg-background-dark/95 backdrop-blur-md border-b border-gray-800/50">
-        <div class="grid grid-cols-3 items-center p-4 max-w-5xl mx-auto">
-            <div class="flex justify-start">
-                <button onclick="toggleSidebar()"
-                    class="flex items-center justify-center rounded-full size-10 bg-surface-dark text-white shadow-sm hover:bg-gray-800 transition-colors">
-                    <span class="material-symbols-outlined">menu</span>
-                </button>
-            </div>
-            <div class="flex justify-center">
-                <h1 class="text-white text-lg font-extrabold tracking-tight uppercase">HABITFLOW</h1>
-            </div>
-            <div class="flex justify-end gap-2">
-                <a href="{{ url_for('friends_page') }}"
-                    class="flex items-center justify-center rounded-full size-10 bg-surface-dark text-white shadow-sm hover:bg-gray-800 transition-colors">
-                    <span class="material-symbols-outlined">group</span>
-                </a>
-            </div>
+    <!-- Top App Bar -->
+    <header class="sticky top-0 z-50 bg-background-dark/90 backdrop-blur-xl transition-all duration-300">
+        <div class="flex items-center justify-between px-6 h-20 max-w-5xl mx-auto">
+            <button onclick="toggleSidebar()"
+                class="flex items-center justify-center rounded-2xl size-12 bg-white/5 text-white hover:bg-white/10 transition-all active:scale-95">
+                <span class="material-symbols-outlined" style="font-size: 28px;">menu</span>
+            </button>
+            <h1 class="text-white text-xl font-black tracking-widest uppercase">HABITFLOW</h1>
+            <a href="{{ url_for('friends_page') }}"
+                class="flex items-center justify-center rounded-2xl size-12 bg-white/5 text-white hover:bg-white/10 transition-all active:scale-95">
+                <span class="material-symbols-outlined" style="font-size: 28px;">group</span>
+            </a>
         </div>
 
         {% with messages = get_flashed_messages() %}

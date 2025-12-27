@@ -82,35 +82,35 @@ function render() {
             }
 
             const checkClass = isCompleted
-                ? 'bg-primary border-primary text-background-dark shadow-[0_0_10px_rgba(19,236,91,0.4)]'
-                : 'border-2 border-gray-200 dark:border-gray-700 text-transparent hover:border-primary/50';
+                ? 'bg-primary border-primary text-background-dark shadow-[0_0_15px_rgba(19,236,91,0.4)]'
+                : 'border-2 border-white/5 text-transparent hover:border-primary/50';
 
-            const titleClass = isCompleted ? 'opacity-50 line-through decoration-2 decoration-primary/50' : 'text-[#0d1b12] dark:text-white';
+            const titleClass = isCompleted ? 'opacity-40 line-through decoration-2 decoration-primary/50' : 'text-white';
 
-            let progressHtml = `<p class="text-xs text-gray-500 font-medium">${habit.frequency === 'daily' ? 'Täglich' : (habit.frequency === 'specific' ? 'Tage' : 'Flexibel')}</p>`;
+            let progressHtml = `<p class="text-xs text-white/40 font-bold uppercase tracking-wider">${habit.frequency === 'daily' ? 'Täglich' : (habit.frequency === 'specific' ? 'Spezifisch' : 'Flexibel')}</p>`;
             if (habit.target > 1) {
                 const progPct = Math.min((habit.current / habit.target) * 100, 100);
                 progressHtml = `
-                    <div class="flex items-center gap-2 mt-1">
-                        <div class="h-1.5 flex-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden max-w-[100px]">
-                            <div class="h-full bg-primary" style="width: ${progPct}%"></div>
+                    <div class="flex items-center gap-3 mt-1.5">
+                        <div class="h-1 flex-1 bg-white/5 rounded-full overflow-hidden max-w-[120px]">
+                            <div class="h-full bg-primary shadow-[0_0_8px_rgba(19,236,91,0.4)]" style="width: ${progPct}%"></div>
                         </div>
-                        <span class="text-[10px] text-gray-500 font-bold">${habit.current}/${habit.target}</span>
+                        <span class="text-[10px] text-white/40 font-black tracking-widest">${habit.current}/${habit.target}</span>
                     </div>
                 `;
             }
 
-            div.className = "group flex items-center gap-4 p-4 bg-white dark:bg-surface-dark rounded-2xl shadow-sm border border-transparent hover:border-primary/10 transition-all active:scale-[0.99]";
+            div.className = "group flex items-center gap-5 p-5 bg-[#1a2e22] rounded-[2rem] border border-white/5 transition-all active:scale-[0.98]";
             div.innerHTML = `
-                <div class="flex shrink-0 items-center justify-center size-12 rounded-2xl ${colorClass} transition-transform group-hover:scale-110">
+                <div class="flex shrink-0 items-center justify-center size-14 rounded-2xl ${colorClass.includes('dark:bg-') ? colorClass.split(' ').filter(c => c.startsWith('dark:') || c.startsWith('text-')).map(c => c.replace('dark:', '')).join(' ') : colorClass} transition-transform group-hover:scale-105">
                     <span class="material-symbols-outlined text-2xl font-medium">${icon}</span>
                 </div>
                 <div class="flex-1 min-w-0 cursor-pointer" onclick="showHabitDetails(${habit.id})">
-                    <h4 class="font-bold text-base truncate ${titleClass}">${habit.text}</h4>
+                    <h4 class="font-black text-base truncate mb-0.5 ${titleClass}">${habit.text}</h4>
                     ${progressHtml}
                 </div>
-                <button onclick="toggleHabit(${index}); event.stopPropagation();" class="shrink-0 size-8 rounded-full border flex items-center justify-center transition-all active:scale-75 ${checkClass}">
-                    <span class="material-symbols-outlined text-lg font-black">check</span>
+                <button onclick="toggleHabit(${index}); event.stopPropagation();" class="shrink-0 size-9 rounded-full border flex items-center justify-center transition-all active:scale-75 ${checkClass}">
+                    <span class="material-symbols-outlined text-xl font-black">${isCompleted ? 'check' : ''}</span>
                 </button>
             `;
             habitList.appendChild(div);
@@ -126,25 +126,25 @@ function render() {
             const isCompleted = task.completed;
 
             const checkClass = isCompleted
-                ? 'bg-primary border-primary text-background-dark'
-                : 'border-2 border-gray-200 dark:border-gray-700 text-transparent';
+                ? 'bg-primary border-primary text-background-dark shadow-[0_0_10px_rgba(19,236,91,0.3)]'
+                : 'border-2 border-white/5 text-transparent';
 
-            const titleClass = isCompleted ? 'opacity-40 line-through' : 'text-[#0d1b12] dark:text-white';
-            const tagHtml = task.tag ? `<span class="text-[10px] font-bold text-primary opacity-70">${task.tag}</span>` : '';
+            const titleClass = isCompleted ? 'opacity-30 line-through' : 'text-white';
+            const tagHtml = task.tag ? `<span class="text-[10px] font-black text-primary opacity-60 uppercase tracking-widest">${task.tag}</span>` : '';
 
-            div.className = "group flex items-center gap-4 p-4 bg-white dark:bg-surface-dark rounded-2xl shadow-sm transition-all";
+            div.className = "group flex items-center gap-5 p-5 bg-[#1a2e22] rounded-[2rem] border border-white/5 transition-all active:scale-[0.98]";
             div.innerHTML = `
-                <div class="flex shrink-0 items-center justify-center size-10 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-400">
-                    <span class="material-symbols-outlined text-xl">assignment</span>
+                <div class="flex shrink-0 items-center justify-center size-12 rounded-2xl bg-white/5 text-white/30">
+                    <span class="material-symbols-outlined text-2xl">assignment</span>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <h4 class="font-bold text-sm truncate ${titleClass}">${task.text}</h4>
+                <div class="flex-1 min-w-0 cursor-pointer" onclick="showTaskDetails(${task.id})">
+                    <h4 class="font-black text-base truncate mb-0.5 ${titleClass}">${task.text}</h4>
                     ${tagHtml}
                 </div>
-                <button onclick="toggleTask(${task.id})" class="shrink-0 size-7 rounded-full border flex items-center justify-center transition-all ${checkClass}">
-                    <span class="material-symbols-outlined text-base font-black">check</span>
+                <button onclick="toggleTask(${index}); event.stopPropagation();" class="shrink-0 size-9 rounded-full border flex items-center justify-center transition-all ${checkClass}">
+                    <span class="material-symbols-outlined text-xl font-black">${isCompleted ? 'check' : ''}</span>
                 </button>
-                <button onclick="deleteTask(${task.id}, event)" class="shrink-0 size-8 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-400 hover:bg-red-500/10 hover:text-red-500 flex items-center justify-center transition-colors ml-2 opacity-0 group-hover:opacity-100">
+                <button onclick="deleteTask(${task.id}, event)" class="shrink-0 size-10 rounded-2xl bg-white/5 text-white/20 hover:bg-red-500/10 hover:text-red-500 flex items-center justify-center transition-all ml-2 opacity-0 group-hover:opacity-100">
                     <span class="material-symbols-outlined text-sm">close</span>
                 </button>
             `;
@@ -262,12 +262,12 @@ function switchEntryType(type) {
     getEl('habit-goal-section').classList.toggle('hidden', !isHabit);
     getEl('task-date-section').classList.toggle('hidden', isHabit);
 
-    const active = "bg-surface-dark shadow-sm text-white font-bold";
-    const inactive = "text-gray-400 font-semibold";
+    const active = "bg-surface-dark shadow-md text-white font-black";
+    const inactive = "text-white/20 font-black";
 
     if (isHabit) {
-        habitTab.className = `flex-1 py-1.5 px-3 rounded-lg text-xs transition-all ${active}`;
-        taskTab.className = `flex-1 py-1.5 px-3 rounded-lg text-xs transition-all ${inactive}`;
+        habitTab.className = `flex-1 py-3 rounded-xl text-[10px] uppercase tracking-widest transition-all ${active}`;
+        taskTab.className = `flex-1 py-3 rounded-xl text-[10px] uppercase tracking-widest transition-all ${inactive}`;
         title.innerText = "Neue Gewohnheit";
         subtitle.innerText = "Beständigkeit ist der Schlüssel zum Erfolg.";
         icon.innerText = "sentiment_satisfied";
@@ -275,8 +275,8 @@ function switchEntryType(type) {
         subBtnText.innerText = "Gewohnheit erstellen";
         subBtnIcon.innerText = "add_circle";
     } else {
-        taskTab.className = `flex-1 py-1.5 px-3 rounded-lg text-xs transition-all ${active}`;
-        habitTab.className = `flex-1 py-1.5 px-3 rounded-lg text-xs transition-all ${inactive}`;
+        taskTab.className = `flex-1 py-3 rounded-xl text-[10px] uppercase tracking-widest transition-all ${active}`;
+        habitTab.className = `flex-1 py-3 rounded-xl text-[10px] uppercase tracking-widest transition-all ${inactive}`;
         title.innerText = "Neue Aufgabe";
         subtitle.innerText = "Erledige die Dinge nacheinander.";
         icon.innerText = "assignment";
@@ -402,7 +402,11 @@ async function showHabitDetails(id) {
         if (res.ok) {
             const data = await res.json();
             getEl('detail-title').innerText = data.text;
-            getEl('detail-subtitle').innerText = `${data.frequency === 'daily' ? 'Täglich' : 'Flexibel'}: ${data.target} ${data.target > 1 ? 'Einheiten' : 'Mal'}`;
+
+            // Subtitle frequency
+            const freqUpper = data.frequency === 'daily' ? 'TÄGLICH' :
+                (data.frequency === 'specific' ? 'FESTE TAGE' : 'FLEXIBEL');
+            getEl('detail-subtitle').innerText = `${freqUpper}: ${data.target} ${data.target > 1 ? 'MAL' : 'MAL'}`;
 
             getEl('detail-streak-val').innerText = data.current_streak;
             getEl('stat-best-streak').innerText = data.best_streak;
@@ -414,16 +418,16 @@ async function showHabitDetails(id) {
             // Calendar
             const grid = getEl('detail-calendar-grid');
             grid.innerHTML = '';
-            // History is last 30 days
-            data.history.slice().reverse().forEach(day => {
+            // History is last 28 days for clean grid or slice
+            data.history.slice(-28).forEach(day => {
                 const dayEl = document.createElement('div');
-                dayEl.className = "aspect-square flex items-center justify-center text-[10px] font-bold rounded-lg transition-all";
+                dayEl.className = "aspect-square flex items-center justify-center text-[10px] font-black rounded-xl transition-all border";
                 if (day.completed) {
-                    dayEl.className += " bg-primary text-background-dark shadow-[0_0_8px_rgba(19,236,91,0.4)]";
+                    dayEl.className += " bg-primary border-primary text-background-dark shadow-[0_5px_15px_rgba(19,236,91,0.3)]";
                 } else if (day.partial) {
-                    dayEl.className += " bg-primary/20 text-primary";
+                    dayEl.className += " bg-primary/20 border-primary/20 text-primary";
                 } else {
-                    dayEl.className += " border border-dashed border-gray-700 text-gray-600";
+                    dayEl.className += " border-white/5 bg-white/[0.02] text-white/20 border-dashed";
                 }
                 dayEl.innerText = day.day;
                 grid.appendChild(dayEl);
@@ -434,18 +438,18 @@ async function showHabitDetails(id) {
             activity.innerHTML = '';
             data.recent.forEach(act => {
                 const item = document.createElement('div');
-                item.className = "bg-surface-dark p-4 rounded-2xl border border-gray-800 flex items-center justify-between";
+                item.className = "group flex items-center justify-between p-5 bg-white/5 rounded-[2rem] border border-white/5 transition-all hover:bg-white/[0.08]";
                 item.innerHTML = `
-                    <div class="flex items-center gap-4">
-                        <div class="size-10 rounded-xl ${act.completed ? 'bg-primary/20 text-primary' : 'bg-gray-800 text-gray-500'} flex items-center justify-center">
-                            <span class="material-symbols-outlined text-xl">${act.completed ? 'check_circle' : 'remove_circle_outline'}</span>
+                    <div class="flex items-center gap-5">
+                        <div class="size-12 rounded-2xl ${act.completed ? 'bg-primary/10 text-primary' : 'bg-white/5 text-white/10'} flex items-center justify-center">
+                            <span class="material-symbols-outlined text-2xl font-medium">${act.completed ? 'check_circle' : 'remove_circle_outline'}</span>
                         </div>
                         <div>
-                            <p class="text-sm font-bold text-white">${act.display_date}</p>
-                            <p class="text-xs text-gray-500 font-medium">${act.completed ? 'Abgeschlossen' : 'Offen / Übersprungen'}</p>
+                            <p class="text-sm font-black text-white mb-0.5">${act.display_date}</p>
+                            <p class="text-[10px] text-white/30 font-bold uppercase tracking-widest">${act.completed ? 'Abgeschlossen' : 'Offen / Übersprungen'}</p>
                         </div>
                     </div>
-                    <span class="text-[10px] font-bold uppercase tracking-widest ${act.completed ? 'text-primary' : 'text-gray-600'}">${act.completed ? 'DONE' : 'MISS'}</span>
+                    <span class="text-[10px] font-black uppercase tracking-widest ${act.completed ? 'text-primary' : 'text-white/20'}">${act.completed ? 'DONE' : 'MISS'}</span>
                 `;
                 activity.appendChild(item);
             });
@@ -516,6 +520,122 @@ window.submitEntry = submitEntry;
 window.showHabitDetails = showHabitDetails;
 window.closeDetails = closeDetails;
 window.toggleHabitFromDetail = toggleHabitFromDetail;
+
+// TASK DETAILS LOGIC
+let currentTaskDetailId = null;
+
+function showTaskDetails(id) {
+    currentTaskDetailId = id;
+    const modal = getEl('task-details-modal');
+    modal.classList.remove('hidden');
+
+    const task = state.tasks.find(t => t.id === id);
+    if (task) {
+        getEl('task-detail-title').innerText = task.text;
+        // Simple date logic for MVP (assuming today/future labels)
+        getEl('task-detail-date').innerText = "Aufgabe";
+
+        const btnText = getEl('task-detail-btn-text');
+        const btn = getEl('task-detail-action-btn');
+        if (task.completed) {
+            btnText.innerText = "Als offen markieren";
+            btn.classList.add('bg-surface-dark', 'text-gray-500', 'border-gray-700');
+            btn.classList.remove('bg-surface-dark', 'text-blue-500', 'border-blue-500/30');
+            // Reset styles a bit for toggle
+        } else {
+            btnText.innerText = "Als erledigt markieren";
+            btn.classList.remove('text-gray-500', 'border-gray-700');
+            btn.classList.add('text-blue-500', 'border-blue-500/30');
+        }
+    }
+}
+
+function closeTaskDetails() {
+    currentTaskDetailId = null;
+    getEl('task-details-modal').classList.add('hidden');
+}
+
+async function deleteCurrentTask() {
+    if (!currentTaskDetailId) return;
+    if (!confirm('Aufgabe wirklich löschen?')) return;
+    try {
+        const res = await fetch('/api/delete_task', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: currentTaskDetailId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            closeTaskDetails();
+            syncState(true);
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function toggleTaskFromDetail() {
+    if (!currentTaskDetailId) return;
+    const idx = state.tasks.findIndex(t => t.id === currentTaskDetailId);
+    if (idx !== -1) {
+        await toggleTask(idx);
+        showTaskDetails(currentTaskDetailId); // Refresh UI
+    }
+}
+
+
+
+// INVITE LOGIC
+async function showInviteModal() {
+    const friendsRes = await fetch('/api/get_friends');
+    const friends = await friendsRes.json();
+
+    if (friends.length === 0) {
+        alert("Du hast noch keine Freunde hinzugefügt!");
+        return;
+    }
+
+    let msg = "Wähle einen Freund (Nummer eingeben):\n";
+    friends.forEach((f, i) => {
+        msg += `${i + 1}: ${f.username}\n`;
+    });
+
+    const choice = prompt(msg);
+    if (choice) {
+        const idx = parseInt(choice) - 1;
+        if (idx >= 0 && idx < friends.length) {
+            await inviteFriendToHabit(friends[idx].id);
+        } else {
+            alert("Ungültige Auswahl");
+        }
+    }
+}
+
+async function inviteFriendToHabit(friendId) {
+    if (!currentDetailId) return;
+    try {
+        const res = await fetch('/api/invite_to_habit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                habit_id: currentDetailId,
+                friend_id: friendId
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert("Einladung gesendet! (Habit wurde beim Freund erstellt)");
+            showHabitDetails(currentDetailId);
+        } else {
+            alert("Fehler beim Einladen.");
+        }
+    } catch (e) { console.error(e); }
+}
+
 window.toggleHabitFromDetail = toggleHabitFromDetail;
 window.deleteCurrentHabit = deleteCurrentHabit;
 window.deleteTask = deleteTask;
+window.showTaskDetails = showTaskDetails;
+window.closeTaskDetails = closeTaskDetails;
+window.deleteCurrentTask = deleteCurrentTask;
+window.toggleTaskFromDetail = toggleTaskFromDetail;
+window.showInviteModal = showInviteModal;
+window.showInviteModal = showInviteModal;

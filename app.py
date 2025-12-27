@@ -232,7 +232,13 @@ def inject_version():
 @login_required
 def index():
     data = compute_user_state(current_user)
-    return render_template('index.html', user=current_user, habits=data['habits'], tasks=data['tasks'], streak=data['streak'])
+    
+    # German Date Helper
+    now = datetime.now()
+    months = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
+    german_date = f"{now.day}. {months[now.month-1]}"
+    
+    return render_template('index.html', user=current_user, habits=data['habits'], tasks=data['tasks'], streak=data['streak'], now=now, german_date=german_date)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -618,6 +624,43 @@ def remove_friend():
     ).delete()
     db.session.commit()
     return jsonify({'success': True})
+
+@app.route('/api/invite_to_habit', methods=['POST'])
+@login_required
+def invite_to_habit():
+    try:
+        data = request.json
+        habit_id = data.get('habit_id')
+        friend_id = data.get('friend_id')
+        
+        habit = Habit.query.get_or_404(habit_id)
+        if habit.user_id != current_user.id:
+            return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+            
+        # Ensure shared_id exists on source habit
+        if not habit.shared_id:
+            habit.shared_id = str(uuid.uuid4())
+            habit.is_shared = True
+        
+        # Check if friend already has this habit
+        existing = Habit.query.filter_by(user_id=friend_id, shared_id=habit.shared_id).first()
+        if not existing:
+            friend_habit = Habit(
+                text=habit.text,
+                user_id=friend_id,
+                frequency=habit.frequency,
+                days=habit.days,
+                target=habit.target,
+                is_shared=True,
+                shared_id=habit.shared_id
+            )
+            db.session.add(friend_habit)
+            
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"Invite error: {e}")
+        return jsonify({'success': False})
 
 @app.route('/api/user_details/<int:id>')
 @login_required
