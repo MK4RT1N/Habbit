@@ -105,8 +105,8 @@ class AppUsage(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     package_name = db.Column(db.String(150), nullable=False)
     usage_minutes = db.Column(db.Integer, default=0)
-    # Changed from String to Date to match project consistency and fix potential query issues
-    date = db.Column(db.Date, default=date.today)
+    # Using String to match user's provided working code exactly
+    date = db.Column(db.String(20), default=lambda: date.today().isoformat())
 
 class AppLimit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -918,24 +918,19 @@ def sync_usage():
             if minutes is None: minutes = 0
             minutes = int(minutes)
             
-            try:
-                # Expecting YYYY-MM-DD from app, or use today
-                d_str = item.get('date')
-                if d_str:
-                    log_date = datetime.strptime(d_str, '%Y-%m-%d').date()
-                else:
-                    log_date = date.today()
-            except:
-                log_date = date.today()
+            # Use string date directly
+            d_str = item.get('date')
+            if not d_str:
+                d_str = date.today().isoformat()
             
             if not pkg: continue
 
             # Check if exists
-            entry = AppUsage.query.filter_by(user_id=user_id, package_name=pkg, date=log_date).first()
+            entry = AppUsage.query.filter_by(user_id=user_id, package_name=pkg, date=d_str).first()
             if entry:
                 entry.usage_minutes = minutes 
             else:
-                entry = AppUsage(user_id=user_id, package_name=pkg, usage_minutes=minutes, date=log_date)
+                entry = AppUsage(user_id=user_id, package_name=pkg, usage_minutes=minutes, date=d_str)
                 db.session.add(entry)
         
         db.session.commit()
@@ -1006,9 +1001,9 @@ def delete_app_limit():
 @app.context_processor
 def inject_focus_data():
     if not current_user.is_authenticated: return {}
-    today = date.today()
+    today_str = date.today().isoformat()
     # Get top apps used today
-    usages = AppUsage.query.filter_by(user_id=current_user.id, date=today).order_by(AppUsage.usage_minutes.desc()).all()
+    usages = AppUsage.query.filter_by(user_id=current_user.id, date=today_str).order_by(AppUsage.usage_minutes.desc()).all()
     
     # Get limits
     limits_raw = AppLimit.query.filter_by(user_id=current_user.id).all()
