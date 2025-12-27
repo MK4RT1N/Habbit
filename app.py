@@ -99,6 +99,20 @@ class ScreenTimeLog(db.Model):
     date = db.Column(db.Date, default=date.today)
     minutes = db.Column(db.Integer, default=0)
 
+# --- FOCUS MODULE MODELS ---
+class AppUsage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    package_name = db.Column(db.String(150), nullable=False)
+    usage_minutes = db.Column(db.Integer, default=0)
+    date = db.Column(db.String(20), default=lambda: date.today().isoformat())
+
+class AppLimit(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    package_name = db.Column(db.String(150), nullable=False)
+    limit_minutes = db.Column(db.Integer, nullable=False)
+
 
 
 
@@ -855,6 +869,125 @@ def get_pending():
         u = User.query.get(f.sender_id)
         reqs.append({'id': u.id, 'username': u.username})
     return jsonify(reqs)
+
+# --- FOCUS MODULE API ---
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    try:
+        data = request.json
+        username = data.get('username')
+        password = data.get('password')
+        
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password, password):
+            return jsonify({"status": "success", "user_id": user.id, "username": user.username})
+        
+        return jsonify({"status": "error", "message": "Invalid credentials"}), 401
+    except Exception as e:
+        logger.error(f"API Login error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/sync_usage', methods=['POST'])
+def sync_usage():
+    # Expecting: {"user_id": 1, "data": [{"package": "com.foo", "time": 50, "date": "2025-01-01"}, ...]}
+    try:
+        data = request.json
+        user_id = data.get('user_id')
+        usage_list = data.get('data', [])
+        
+        if not user_id:
+             return jsonify({"status": "error", "message": "Missing user_id"}), 400
+             
+        for item in usage_list:
+            pkg = item.get('package')
+            minutes = int(item.get('time', 0))
+            date_str = item.get('date', date.today().isoformat())
+            
+            # Check if exists
+            entry = AppUsage.query.filter_by(user_id=user_id, package_name=pkg, date=date_str).first()
+            if entry:
+                entry.usage_minutes = minutes # Update overwrite or add? Usually sync sends total for day. Let's overwrite/max.
+                # Assuming app sends current daily total
+            else:
+                entry = AppUsage(user_id=user_id, package_name=pkg, usage_minutes=minutes, date=date_str)
+                db.session.add(entry)
+        
+        db.session.commit()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        logger.error(f"Sync error: {e}")
+        return jsonify({"status": "error"})
+
+@app.route('/api/get_config', methods=['GET'])
+def get_config():
+    try:
+        user_id = request.args.get('user_id')
+        if not user_id:
+             return jsonify({"status": "error", "message": "Missing user_id"}), 400
+        
+        limits = AppLimit.query.filter_by(user_id=user_id).all()
+        limit_data = [{"packageName": l.package_name, "limit": l.limit_minutes} for l in limits]
+        
+        return jsonify({"limits": limit_data, "status": "success"})
+    except Exception as e:
+        return jsonify({"status": "error"})
+
+@app.route('/focus-dashboard')
+@login_required
+def focus_dashboard():
+    # Helper for adding limits from modal
+    return render_template('focus_dashboard.html')
+
+@app.route('/api/add_limit', methods=['POST'])
+@login_required
+def add_app_limit():
+    pkg = request.form.get('package')
+    limit = int(request.form.get('limit'))
+    
+    existing = AppLimit.query.filter_by(user_id=current_user.id, package_name=pkg).first()
+    if existing:
+        existing.limit_minutes = limit
+    else:
+        new_limit = AppLimit(user_id=current_user.id, package_name=pkg, limit_minutes=limit)
+        db.session.add(new_limit)
+    
+    db.session.commit()
+    flash(f"Limit für {pkg} gespeichert.")
+    return redirect(url_for('focus_dashboard'))
+
+@app.route('/api/delete_limit', methods=['POST'])
+@login_required
+def delete_app_limit():
+    pkg = request.form.get('package')
+    AppLimit.query.filter_by(user_id=current_user.id, package_name=pkg).delete()
+    db.session.commit()
+    flash("Limit gelöscht.")
+    return redirect(url_for('focus_dashboard'))
+
+@app.context_processor
+def inject_focus_data():
+    if not current_user.is_authenticated: return {}
+    today_str = date.today().isoformat()
+    # Get top apps used today
+    usages = AppUsage.query.filter_by(user_id=current_user.id, date=today_str).order_by(AppUsage.usage_minutes.desc()).all()
+    
+    # Get limits
+    limits_raw = AppLimit.query.filter_by(user_id=current_user.id).all()
+    limits_map = {l.package_name: l.limit_minutes for l in limits_raw}
+    
+    combined = []
+    total_minutes = 0
+    for u in usages:
+        total_minutes += u.usage_minutes
+        combined.append({
+            'package': u.package_name,
+            'time': u.usage_minutes,
+            'limit': limits_map.get(u.package_name, 0),
+            'percent': int((u.usage_minutes / limits_map.get(u.package_name, 1))*100) if u.package_name in limits_map else 0
+        })
+        
+    return {'focus_apps': combined, 'focus_limits': limits_raw, 'focus_total': total_minutes}
 
 # --- Logic ---
 

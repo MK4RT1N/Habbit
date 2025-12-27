@@ -1,0 +1,124 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="space-y-8 animate-fade-in-up">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-black text-white tracking-tight uppercase">App Focus</h1>
+            <p class="text-gray-400">Verwalte deine App-Limits und Statistiken</p>
+        </div>
+        <div class="p-3 bg-surface-dark rounded-2xl border border-gray-800/50 shadow-soft">
+            <span class="material-symbols-outlined text-primary" style="font-size: 32px;">lock_clock</span>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="md:col-span-2 bg-surface-dark p-6 rounded-3xl border border-gray-800/50 shadow-soft">
+            <h3 class="text-lg font-bold text-white mb-6 flex items-center justify-between">
+                <span class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">apps</span>
+                    App Nutzung Heute
+                </span>
+                <span class="text-xs font-mono text-gray-500 bg-gray-900 px-2 py-1 rounded">{{ focus_total // 60 }}h {{
+                    focus_total % 60 }}m Total</span>
+            </h3>
+
+            <div class="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar">
+                {% if focus_apps %}
+                {% for app in focus_apps %}
+                <div class="group relative">
+                    <div class="flex items-center justify-between mb-1 relative z-10">
+                        <span class="text-sm font-bold text-gray-300 truncate w-1/2">{{ app.package }}</span>
+                        <span class="text-xs font-mono text-gray-400">{{ app.time }}m / {{ app.limit if app.limit > 0
+                            else '∞' }}m</span>
+                    </div>
+                    <div class="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+                        <div class="h-full rounded-full {{ 'bg-red-500' if app.limit > 0 and app.time > app.limit else 'bg-primary' }} transition-all duration-500"
+                            style="width: {{ app.percent if app.limit > 0 else 0 }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center py-10 text-gray-500">
+                    <span class="material-symbols-outlined text-4xl mb-2 opacity-50">phishing</span>
+                    <p>Keine Daten für heute empfangen.</p>
+                    <p class="text-xs mt-1">Installiere die App und logge dich ein.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Limits Manager -->
+        <div class="bg-surface-dark p-6 rounded-3xl border border-gray-800/50 shadow-soft">
+            <h3 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">block</span>
+                Limits Setzen
+            </h3>
+
+            <form action="{{ url_for('add_app_limit') }}" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Package
+                        Name</label>
+                    <input type="text" name="package" placeholder="com.instagram.android" required
+                        class="w-full bg-background-dark border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder-gray-600 text-sm font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Limit
+                        (Minuten)</label>
+                    <input type="number" name="limit" placeholder="60" required
+                        class="w-full bg-background-dark border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-mono">
+                </div>
+                <button type="submit"
+                    class="w-full py-3 bg-primary text-primary-content font-bold rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined">save</span>
+                    Limit Speichern
+                </button>
+            </form>
+
+            <div class="mt-8">
+                <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-800 pb-2">
+                    Aktive Limits</h4>
+                <div class="space-y-2 max-h-[200px] overflow-y-auto no-scrollbar">
+                    {% for l in focus_limits %}
+                    <div
+                        class="flex items-center justify-between bg-background-dark/50 p-3 rounded-xl border border-gray-800/30">
+                        <div class="flex flex-col overflow-hidden mr-2">
+                            <span class="text-xs font-bold text-white truncate" title="{{ l.package_name }}">{{
+                                l.package_name }}</span>
+                            <span class="text-[10px] text-primary font-mono">{{ l.limit_minutes }} min</span>
+                        </div>
+                        <form action="{{ url_for('delete_app_limit') }}" method="POST">
+                            <input type="hidden" name="package" value="{{ l.package_name }}">
+                            <button type="submit"
+                                class="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">
+                                <span class="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in-up {
+        animation: fadeInUp 0.5s ease-out forwards;
+    }
+</style>
+{% endblock %}
