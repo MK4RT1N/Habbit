@@ -105,7 +105,8 @@ class AppUsage(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     package_name = db.Column(db.String(150), nullable=False)
     usage_minutes = db.Column(db.Integer, default=0)
-    date = db.Column(db.String(20), default=lambda: date.today().isoformat())
+    # Changed from String to Date to match project consistency and fix potential query issues
+    date = db.Column(db.Date, default=date.today)
 
 class AppLimit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -901,9 +902,12 @@ def sync_usage():
             usage_list = data.get('data')
         
         if not user_id:
-             # Fallback: If app defines a specific user or we trust unique package combos (risky)
-             # For now, require user_id as returned by login
-             return jsonify({"status": "error", "message": "Missing user_id"}), 400
+             # Fallback: User snippet used User.query.first()
+             first_user = User.query.first()
+             if first_user:
+                 user_id = first_user.id
+             else:
+                 return jsonify({"status": "error", "message": "Missing user_id and no users found"}), 400
              
         for item in usage_list:
             # Support multiple key names from different app versions
@@ -914,16 +918,24 @@ def sync_usage():
             if minutes is None: minutes = 0
             minutes = int(minutes)
             
-            date_str = item.get('date', date.today().isoformat())
+            try:
+                # Expecting YYYY-MM-DD from app, or use today
+                d_str = item.get('date')
+                if d_str:
+                    log_date = datetime.strptime(d_str, '%Y-%m-%d').date()
+                else:
+                    log_date = date.today()
+            except:
+                log_date = date.today()
             
             if not pkg: continue
 
             # Check if exists
-            entry = AppUsage.query.filter_by(user_id=user_id, package_name=pkg, date=date_str).first()
+            entry = AppUsage.query.filter_by(user_id=user_id, package_name=pkg, date=log_date).first()
             if entry:
                 entry.usage_minutes = minutes 
             else:
-                entry = AppUsage(user_id=user_id, package_name=pkg, usage_minutes=minutes, date=date_str)
+                entry = AppUsage(user_id=user_id, package_name=pkg, usage_minutes=minutes, date=log_date)
                 db.session.add(entry)
         
         db.session.commit()
@@ -994,9 +1006,9 @@ def delete_app_limit():
 @app.context_processor
 def inject_focus_data():
     if not current_user.is_authenticated: return {}
-    today_str = date.today().isoformat()
+    today = date.today()
     # Get top apps used today
-    usages = AppUsage.query.filter_by(user_id=current_user.id, date=today_str).order_by(AppUsage.usage_minutes.desc()).all()
+    usages = AppUsage.query.filter_by(user_id=current_user.id, date=today).order_by(AppUsage.usage_minutes.desc()).all()
     
     # Get limits
     limits_raw = AppLimit.query.filter_by(user_id=current_user.id).all()
