@@ -890,25 +890,38 @@ def api_login():
 
 @app.route('/api/sync_usage', methods=['POST'])
 def sync_usage():
-    # Expecting: {"user_id": 1, "data": [{"package": "com.foo", "time": 50, "date": "2025-01-01"}, ...]}
     try:
         data = request.json
+        # User ID handling: Try to get from data, else fallback (though auth is best)
         user_id = data.get('user_id')
-        usage_list = data.get('data', [])
+        
+        # Flexibility for usage list key
+        usage_list = data.get('usage', [])
+        if not usage_list and 'data' in data:
+            usage_list = data.get('data')
         
         if not user_id:
+             # Fallback: If app defines a specific user or we trust unique package combos (risky)
+             # For now, require user_id as returned by login
              return jsonify({"status": "error", "message": "Missing user_id"}), 400
              
         for item in usage_list:
-            pkg = item.get('package')
-            minutes = int(item.get('time', 0))
+            # Support multiple key names from different app versions
+            pkg = item.get('packageName') or item.get('package')
+            minutes = item.get('usageDuration')
+            if minutes is None: minutes = item.get('minutes')
+            if minutes is None: minutes = item.get('time')
+            if minutes is None: minutes = 0
+            minutes = int(minutes)
+            
             date_str = item.get('date', date.today().isoformat())
             
+            if not pkg: continue
+
             # Check if exists
             entry = AppUsage.query.filter_by(user_id=user_id, package_name=pkg, date=date_str).first()
             if entry:
-                entry.usage_minutes = minutes # Update overwrite or add? Usually sync sends total for day. Let's overwrite/max.
-                # Assuming app sends current daily total
+                entry.usage_minutes = minutes 
             else:
                 entry = AppUsage(user_id=user_id, package_name=pkg, usage_minutes=minutes, date=date_str)
                 db.session.add(entry)
