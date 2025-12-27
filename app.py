@@ -881,6 +881,7 @@ def api_login():
         password = data.get('password')
         
         user = User.query.filter_by(username=username).first()
+        # Use secure hash check properly
         if user and check_password_hash(user.password, password):
             return jsonify({"status": "success", "user_id": user.id, "username": user.username})
         
