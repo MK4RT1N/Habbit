@@ -220,83 +220,91 @@
 <div id="habit-details-modal" class="hidden fixed inset-0 z-[120] bg-background-dark flex flex-col overflow-hidden">
     <!-- Header -->
     <header
-        class="flex items-center justify-between px-6 h-20 border-b border-white/5 bg-background-dark/90 backdrop-blur-xl shrink-0">
-        <button onclick="closeDetails()"
-            class="size-11 rounded-[1.2rem] bg-white/5 flex items-center justify-center text-white active:scale-90 transition-all border border-white/5">
-            <span class="material-symbols-outlined" style="font-size: 24px;">arrow_back</span>
-        </button>
-        <h2 class="text-white font-black tracking-[0.2em] uppercase text-[10px]">Habit Details</h2>
-        <button onclick="deleteCurrentHabit()"
-            class="size-11 rounded-[1.2rem] bg-red-500/10 flex items-center justify-center text-red-500 active:scale-90 transition-all border border-red-500/10">
-            <span class="material-symbols-outlined" style="font-size: 24px;">delete</span>
-        </button>
+        class="flex items-center justify-between px-6 h-20 border-b border-white/5 bg-background-dark/95 backdrop-blur-xl shrink-0">
+        <div class="flex items-center justify-start flex-1">
+            <button onclick="closeDetails()"
+                class="size-11 rounded-2xl bg-white/5 flex items-center justify-center text-white active:scale-90 transition-all border border-white/5">
+                <span class="material-symbols-outlined" style="font-size: 24px;">arrow_back</span>
+            </button>
+        </div>
+
+        <h2 class="text-white font-black tracking-widest uppercase text-xl text-center">HabitFlow</h2>
+
+        <div class="flex items-center justify-end gap-3 flex-1">
+            <button onclick="showInviteModal()"
+                class="size-11 rounded-2xl bg-white/5 flex items-center justify-center text-white active:scale-90 transition-all border border-white/5">
+                <span class="material-symbols-outlined" style="font-size: 24px;">person_add</span>
+            </button>
+            <button onclick="deleteCurrentHabit()"
+                class="size-11 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 active:scale-90 transition-all border border-red-500/10">
+                <span class="material-symbols-outlined" style="font-size: 24px;">delete</span>
+            </button>
+        </div>
     </header>
 
     <!-- Content -->
-    <div class="flex-1 overflow-y-auto p-6 pb-24 no-scrollbar">
+    <div class="flex-1 overflow-y-auto p-6 pb-32 no-scrollbar">
         <!-- Icon & Name -->
-        <div class="text-center mb-10 pt-4">
+        <div class="text-center mb-12 pt-8">
             <div
-                class="size-28 rounded-[2.8rem] bg-white/5 border border-white/10 mx-auto flex items-center justify-center mb-8 shadow-xl">
+                class="size-28 rounded-[2.8rem] bg-[#1a2e22] border border-white/5 mx-auto flex items-center justify-center mb-8 shadow-2xl">
                 <span id="detail-icon-emoji" class="text-6xl">✨</span>
             </div>
-            <h2 id="detail-title" class="text-4xl font-black text-white mb-3 tracking-tight">Habit Name</h2>
-            <p id="detail-subtitle" class="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">FREQUENCY
+            <h2 id="detail-title" class="text-4xl font-black text-white mb-4 tracking-tight">Habit Name</h2>
+            <p id="detail-subtitle" class="text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">FREQUENCY
                 INFO</p>
         </div>
 
-        <!-- Major Stats -->
-        <div class="grid grid-cols-2 gap-4 mb-10">
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-4 gap-3 mb-12">
+            <!-- Streak -->
             <div
-                class="p-8 rounded-[2.5rem] bg-white/5 border border-white/5 text-center flex flex-col items-center justify-center min-h-[140px]">
-                <p id="detail-streak-val" class="text-4xl font-black text-white mb-2">0</p>
-                <p class="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Streak</p>
+                class="p-4 rounded-[1.8rem] bg-[#1a2e22] border border-white/5 text-center flex flex-col items-center justify-center min-h-[110px] shadow-sm">
+                <p id="detail-streak-val" class="text-2xl font-black text-white mb-1 tracking-tighter">0</p>
+                <p class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Streak</p>
             </div>
+            <!-- Rate -->
             <div
-                class="p-8 rounded-[2.5rem] bg-white/5 border border-white/5 text-center flex flex-col items-center justify-center min-h-[140px]">
-                <p id="stat-rate" class="text-4xl font-black text-white mb-2">0%</p>
-                <p class="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Erfolgsrate</p>
+                class="p-4 rounded-[1.8rem] bg-[#1a2e22] border border-white/5 text-center flex flex-col items-center justify-center min-h-[110px] shadow-sm">
+                <p id="stat-rate" class="text-2xl font-black text-white mb-1 tracking-tighter">0%</p>
+                <p class="text-[8px] font-black text-white/30 uppercase tracking-[0.1em]">Erfolgsrate</p>
+            </div>
+            <!-- Total -->
+            <div
+                class="p-4 rounded-[1.8rem] bg-[#1a2e22] border border-white/5 text-center flex flex-col items-center justify-center min-h-[110px] shadow-sm">
+                <p id="stat-total" class="text-2xl font-black text-white mb-1 tracking-tight">0</p>
+                <p class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Gesamt</p>
+            </div>
+            <!-- Best -->
+            <div
+                class="p-4 rounded-[1.8rem] bg-[#1a2e22] border border-white/5 text-center flex flex-col items-center justify-center min-h-[110px] shadow-sm">
+                <p id="stat-best-streak" class="text-2xl font-black text-white mb-1 tracking-tight">0</p>
+                <p class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Bestwert</p>
             </div>
         </div>
 
-        <!-- Minor Stats -->
-        <div class="grid grid-cols-2 gap-4 mb-12">
-            <div class="text-center">
-                <p id="stat-total" class="text-2xl font-black text-white mb-1">0</p>
-                <p class="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Gesamt</p>
-            </div>
-            <div class="text-center">
-                <p id="stat-best-streak" class="text-2xl font-black text-white mb-1">0</p>
-                <p class="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Bestwert</p>
-            </div>
-        </div>
-
-        <!-- Motivation & Buttons -->
-        <div class="space-y-4 mb-16">
-            <p id="detail-status-text" class="text-center text-[#d4af37] font-bold italic mb-6">Laufschuhe an! 💪</p>
-            <button onclick="toggleHabitFromDetail()"
-                class="w-full py-5 rounded-[2.2rem] bg-primary text-background-dark font-black uppercase tracking-[0.2em] shadow-[0_12px_24px_rgba(19,236,91,0.25)] hover:scale-[1.02] active:scale-95 transition-all">
+        <!-- Interaction -->
+        <div class="space-y-4 mb-16 px-2">
+            <button id="detail-checkin-btn" onclick="toggleHabitFromDetail()"
+                class="w-full py-5 rounded-[2rem] bg-primary text-background-dark font-black uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(19,236,91,0.25)] hover:brightness-110 active:scale-[0.97] transition-all text-sm">
                 Heute Einchecken
             </button>
-            <button onclick="showInviteModal()"
-                class="w-full py-5 rounded-[2.2rem] bg-white/5 text-white/50 font-black uppercase tracking-[0.2em] border border-white/10 hover:bg-white/10 active:scale-95 transition-all">
-                Freunde Einladen
-            </button>
+
         </div>
 
-        <!-- History -->
+        <!-- History Section -->
         <div class="mb-14">
-            <h3 class="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] mb-8">Verlauf</h3>
-            <div id="detail-calendar-grid" class="grid grid-cols-7 gap-3">
-                <!-- Data via JS -->
+            <h3 class="text-[10px] font-black text-white/20 uppercase tracking-[0.5em] mb-10 px-2">Verlauf</h3>
+            <div id="detail-calendar-grid" class="grid grid-cols-7 gap-3 px-2">
+                <!-- JS populated -->
             </div>
         </div>
 
-        <!-- Activities -->
-        <div class="pb-10">
-            <h3 class="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] mb-8">Aktivitäten</h3>
-            <div id="recent-activity-list" class="space-y-4">
-                <!-- Data via JS -->
+        <!-- Activity Section -->
+        <div class="pb-20">
+            <h3 class="text-[10px] font-black text-white/20 uppercase tracking-[0.5em] mb-10 px-2">Aktivitäten</h3>
+            <div id="recent-activity-list" class="space-y-4 px-2">
+                <!-- JS populated -->
             </div>
         </div>
     </div>
@@ -323,6 +331,33 @@
         <button id="task-detail-action-btn" onclick="toggleTaskFromDetail()"
             class="w-full max-w-sm py-5 rounded-2xl bg-white/5 border border-white/10 text-white font-black uppercase tracking-[0.2em] active:scale-95 transition-all">
             <span id="task-detail-btn-text">Als erledigt markieren</span>
+        </button>
+    </div>
+</div>
+</div>
+
+<!-- INVITE FRIENDS MODAL -->
+<div id="invite-friends-modal" class="hidden fixed inset-0 z-[130] bg-background-dark flex flex-col overflow-hidden">
+    <header
+        class="flex items-center justify-between px-6 h-20 border-b border-white/5 bg-background-dark/95 backdrop-blur-xl shrink-0">
+        <button onclick="closeInviteModal()"
+            class="size-11 rounded-2xl bg-white/5 flex items-center justify-center text-white active:scale-90 transition-all border border-white/5">
+            <span class="material-symbols-outlined" style="font-size: 24px;">close</span>
+        </button>
+        <h2 class="text-white font-black tracking-widest uppercase text-lg text-center">Freunde Einladen</h2>
+        <div class="size-11"></div> <!-- Spacer -->
+    </header>
+    <div class="flex-1 overflow-y-auto p-6 no-scrollbar">
+        <p class="text-center text-white/50 text-sm mb-6">Wähle Freunde aus, die du zu diesem Habit einladen möchtest.
+        </p>
+        <div id="invite-friends-list" class="space-y-3">
+            <!-- Friend items injected via JS -->
+        </div>
+    </div>
+    <div class="p-6 border-t border-white/5 bg-background-dark/95">
+        <button onclick="submitInvitations()"
+            class="w-full py-5 rounded-[2rem] bg-primary text-background-dark font-black uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(19,236,91,0.25)] hover:brightness-110 active:scale-[0.97] transition-all">
+            Einladung senden
         </button>
     </div>
 </div>

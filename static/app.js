@@ -210,8 +210,20 @@ async function toggleHabit(index) {
 
 async function toggleHabitFromDetail() {
     if (!currentDetailId) return;
+
+    // Find in the local visible habits array
     const idx = state.habits.findIndex(h => h.id === currentDetailId);
-    if (idx !== -1) toggleHabit(idx);
+
+    // If it's on the dashboard, we use the existing toggleHabit logic which updates the dashboard UI immediately
+    if (idx !== -1) {
+        await toggleHabit(idx);
+    } else {
+        // If it's not on the dashboard today, we just call the API
+        const success = await apiCallWithSync('toggle_habit', { id: currentDetailId });
+        if (success) {
+            // refreshCurrentDetail is called by syncState() inside apiCallWithSync
+        }
+    }
 }
 
 async function toggleTask(index) {
@@ -413,8 +425,6 @@ async function showHabitDetails(id) {
             getEl('stat-total').innerText = data.total_done;
             getEl('stat-rate').innerText = data.completion_rate + "%";
 
-            getEl('detail-status-text').innerText = data.current_streak > 0 ? "Du bist on fire! 🔥" : "Laufschuhe an! 💪";
-
             // Calendar
             const grid = getEl('detail-calendar-grid');
             grid.innerHTML = '';
@@ -432,6 +442,25 @@ async function showHabitDetails(id) {
                 dayEl.innerText = day.day;
                 grid.appendChild(dayEl);
             });
+
+            // Update Button Status
+            const btn = getEl('detail-checkin-btn');
+            if (btn) {
+                const isCompletedToday = data.history[0].completed;
+                if (isCompletedToday) {
+                    btn.innerText = "Abgeschlossen ✨";
+                    btn.classList.remove('bg-primary', 'text-background-dark');
+                    btn.classList.add('bg-white/5', 'text-white/40', 'border', 'border-white/10');
+                    btn.onclick = null; // Disable or keep for "checking out"?
+                    // For now let's keep it toggleable but style it differently
+                    btn.onclick = toggleHabitFromDetail;
+                } else {
+                    btn.innerText = "Heute Einchecken";
+                    btn.classList.add('bg-primary', 'text-background-dark');
+                    btn.classList.remove('bg-white/5', 'text-white/40', 'border', 'border-white/10');
+                    btn.onclick = toggleHabitFromDetail;
+                }
+            }
 
             // Activity
             const activity = getEl('recent-activity-list');
@@ -584,33 +613,69 @@ async function toggleTaskFromDetail() {
 
 
 // INVITE LOGIC
+// INVITE LOGIC
 async function showInviteModal() {
-    const friendsRes = await fetch('/api/get_friends');
-    const friends = await friendsRes.json();
+    if (!currentDetailId) return;
+    const res = await fetch('/api/get_friends');
+    const friends = await res.json();
+    const list = getEl('invite-friends-list');
+    const modal = getEl('invite-friends-modal');
+
+    list.innerHTML = '';
 
     if (friends.length === 0) {
-        alert("Du hast noch keine Freunde hinzugefügt!");
+        list.innerHTML = '<p class="text-center text-white/30 italic">Du hast noch keine Freunde hinzugefügt.</p>';
+    } else {
+        friends.forEach(f => {
+            const div = document.createElement('div');
+            div.className = "flex items-center gap-4 p-4 bg-white/5 rounded-[1.5rem] border border-white/5 transition-colors hover:bg-white/10 cursor-pointer";
+            div.onclick = (e) => {
+                // Toggle checkbox if clicking on the row
+                if (e.target.type !== 'checkbox') {
+                    const cb = div.querySelector('input');
+                    cb.checked = !cb.checked;
+                }
+            };
+            div.innerHTML = `
+                <div class="size-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary font-black text-sm">
+                    ${f.username.charAt(0).toUpperCase()}
+                </div>
+                <div class="flex-1">
+                    <p class="font-black text-white text-sm tracking-wide">${f.username}</p>
+                </div>
+                <input type="checkbox" value="${f.id}" class="invite-checkbox size-6 accent-primary rounded-lg cursor-pointer">
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function closeInviteModal() {
+    getEl('invite-friends-modal').classList.add('hidden');
+}
+
+async function submitInvitations() {
+    const checks = document.querySelectorAll('.invite-checkbox:checked');
+    if (checks.length === 0) {
+        alert("Bitte mindestens einen Freund auswählen.");
         return;
     }
 
-    let msg = "Wähle einen Freund (Nummer eingeben):\n";
-    friends.forEach((f, i) => {
-        msg += `${i + 1}: ${f.username}\n`;
-    });
-
-    const choice = prompt(msg);
-    if (choice) {
-        const idx = parseInt(choice) - 1;
-        if (idx >= 0 && idx < friends.length) {
-            await inviteFriendToHabit(friends[idx].id);
-        } else {
-            alert("Ungültige Auswahl");
-        }
+    let successCount = 0;
+    for (const cb of checks) {
+        const friendId = parseInt(cb.value);
+        const success = await inviteFriendInternal(friendId);
+        if (success) successCount++;
     }
+
+    alert(`${successCount} Einladungen versendet!`);
+    closeInviteModal();
 }
 
-async function inviteFriendToHabit(friendId) {
-    if (!currentDetailId) return;
+async function inviteFriendInternal(friendId) {
+    if (!currentDetailId) return false;
     try {
         const res = await fetch('/api/invite_to_habit', {
             method: 'POST',
@@ -621,13 +686,11 @@ async function inviteFriendToHabit(friendId) {
             })
         });
         const data = await res.json();
-        if (data.success) {
-            alert("Einladung gesendet! (Habit wurde beim Freund erstellt)");
-            showHabitDetails(currentDetailId);
-        } else {
-            alert("Fehler beim Einladen.");
-        }
-    } catch (e) { console.error(e); }
+        return data.success;
+    } catch (e) {
+        console.error(e);
+        return false;
+    }
 }
 
 window.toggleHabitFromDetail = toggleHabitFromDetail;
@@ -638,4 +701,5 @@ window.closeTaskDetails = closeTaskDetails;
 window.deleteCurrentTask = deleteCurrentTask;
 window.toggleTaskFromDetail = toggleTaskFromDetail;
 window.showInviteModal = showInviteModal;
-window.showInviteModal = showInviteModal;
+window.closeInviteModal = closeInviteModal;
+window.submitInvitations = submitInvitations;
