@@ -534,6 +534,39 @@ def toggle_task():
     except:
         return jsonify({'success': False})
 
+@app.route('/api/delete_habit', methods=['POST'])
+@login_required
+def delete_habit():
+    try:
+        data = request.json
+        habit_id = data.get('id')
+        habit = Habit.query.get_or_404(habit_id)
+        if habit.user_id != current_user.id:
+            return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+            
+        db.session.delete(habit)
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"Delete habit error: {e}")
+        return jsonify({'success': False})
+
+@app.route('/api/delete_task', methods=['POST'])
+@login_required
+def delete_task():
+    try:
+        data = request.json
+        task_id = data.get('id')
+        task = Task.query.get_or_404(task_id)
+        if task.user_id != current_user.id:
+            return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+            
+        db.session.delete(task)
+        db.session.commit()
+        return jsonify({'success': True})
+    except:
+        return jsonify({'success': False})
+
 # --- Friend API ---
 
 @app.route('/api/search_users', methods=['POST'])
@@ -585,6 +618,46 @@ def remove_friend():
     ).delete()
     db.session.commit()
     return jsonify({'success': True})
+
+@app.route('/api/user_details/<int:id>')
+@login_required
+def get_user_details(id):
+    user = User.query.get_or_404(id)
+    
+    # Check friendship status
+    status = 'none'
+    if user.id != current_user.id:
+        f1 = Friendship.query.filter_by(sender_id=current_user.id, receiver_id=user.id).first()
+        f2 = Friendship.query.filter_by(sender_id=user.id, receiver_id=current_user.id).first()
+        if f1: status = f1.status
+        elif f2: status = f2.status + '_received' if f2.status == 'pending' else 'accepted'
+    else:
+        status = 'self'
+
+    # Get achievements
+    user_achvs = UserAchievement.query.filter_by(user_id=user.id).order_by(UserAchievement.date_earned.desc()).limit(5).all()
+    achievements = []
+    earned_ids = {ua.achievement_id for ua in user_achvs}
+    
+    for ua in user_achvs:
+        ach = Achievement.query.get(ua.achievement_id)
+        achievements.append({
+            'title': ach.title,
+            'icon': ach.icon,
+            'earned': True
+        })
+        
+    achievement_count = UserAchievement.query.filter_by(user_id=user.id).count()
+
+    return jsonify({
+        'id': user.id,
+        'username': user.username,
+        'join_year': '2025', # Hardcoded for MVP as created_at is missing
+        'streak': user.current_streak,
+        'achievement_count': achievement_count,
+        'achievements': achievements,
+        'status': status
+    })
 
 @app.route('/api/get_friends')
 @login_required

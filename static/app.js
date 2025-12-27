@@ -141,8 +141,11 @@ function render() {
                     <h4 class="font-bold text-sm truncate ${titleClass}">${task.text}</h4>
                     ${tagHtml}
                 </div>
-                <button onclick="toggleTask(${index})" class="shrink-0 size-7 rounded-full border flex items-center justify-center transition-all ${checkClass}">
+                <button onclick="toggleTask(${task.id})" class="shrink-0 size-7 rounded-full border flex items-center justify-center transition-all ${checkClass}">
                     <span class="material-symbols-outlined text-base font-black">check</span>
+                </button>
+                <button onclick="deleteTask(${task.id}, event)" class="shrink-0 size-8 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-400 hover:bg-red-500/10 hover:text-red-500 flex items-center justify-center transition-colors ml-2 opacity-0 group-hover:opacity-100">
+                    <span class="material-symbols-outlined text-sm">close</span>
                 </button>
             `;
             taskList.appendChild(div);
@@ -461,6 +464,45 @@ function closeDetails() {
 
 
 
+async function deleteCurrentHabit() {
+    if (!currentDetailId) return;
+    if (!confirm('Möchtest du diese Gewohnheit wirklich löschen?')) return;
+
+    try {
+        const res = await fetch('/api/delete_habit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: currentDetailId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            closeDetails();
+            syncState(true);
+        } else {
+            alert('Fehler beim Löschen.');
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+async function deleteTask(id, event) {
+    if (event) event.stopPropagation();
+    if (!confirm('Aufgabe entfernen?')) return;
+
+    try {
+        const res = await fetch('/api/delete_task', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+        if (data.success) {
+            syncState(true);
+        }
+    } catch (e) { console.error(e); }
+}
+
 // Global Bindings
 window.toggleHabit = toggleHabit;
 window.toggleTask = toggleTask;
@@ -474,3 +516,6 @@ window.submitEntry = submitEntry;
 window.showHabitDetails = showHabitDetails;
 window.closeDetails = closeDetails;
 window.toggleHabitFromDetail = toggleHabitFromDetail;
+window.toggleHabitFromDetail = toggleHabitFromDetail;
+window.deleteCurrentHabit = deleteCurrentHabit;
+window.deleteTask = deleteTask;

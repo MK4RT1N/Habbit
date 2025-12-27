@@ -62,6 +62,31 @@
     </div>
 </div>
 
+<!-- USER PROFILE MODAL (PREMIUM DESIGN) -->
+<div id="user-profile-modal" onclick="if(event.target === this) closeUserProfile()"
+    class="hidden fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center transition-all duration-300">
+    <div onclick="event.stopPropagation()"
+        class="profile-card relative w-full h-auto max-h-[85vh] sm:max-h-[700px] sm:max-w-md bg-background-light dark:bg-background-dark rounded-t-[2rem] sm:rounded-3xl shadow-2xl overflow-y-auto no-scrollbar transform transition-transform translate-y-full sm:translate-y-0"
+        id="profile-card-inner">
+
+        <!-- Drag Handle for Mobile -->
+        <div class="absolute top-0 left-0 right-0 flex justify-center py-3 z-20 pointer-events-none">
+            <div class="h-1.5 w-12 rounded-full bg-gray-300 dark:bg-gray-700"></div>
+        </div>
+
+        <!-- Close Button Absolute -->
+        <button onclick="closeUserProfile()"
+            class="absolute top-4 right-4 z-30 p-2 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 hover:text-gray-900 dark:text-white transition-colors">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+
+        <!-- Content Loaded via JS -->
+        <div id="user-profile-content">
+            <!-- Loading Skeleton or Real Content -->
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         loadFriends();
@@ -90,7 +115,10 @@
 
             users.forEach(u => {
                 const div = document.createElement('div');
-                div.className = 'group flex items-center justify-between p-4 bg-surface-light dark:bg-surface-dark rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm';
+                div.className = 'group flex items-center justify-between p-4 bg-surface-light dark:bg-surface-dark rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5';
+                div.onclick = (e) => {
+                    if (e.target.tagName !== 'BUTTON') openUserProfile(u.id);
+                };
                 div.innerHTML = `
                     <div class="flex items-center gap-3 text-left">
                         <div class="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
@@ -107,9 +135,10 @@
 
     function getActionButton(user) {
         if (user.status === 'pending') return '<span class="text-xs font-bold text-gray-500 uppercase tracking-widest">Wartend</span>';
-        if (user.status === 'msg_received') return `<button class="bg-primary text-black px-4 py-2 rounded-xl font-bold text-xs" onclick="acceptFriend(${user.id})">Annehmen</button>`;
+        if (user.status === 'msg_received') return `<button class="bg-primary text-black px-4 py-2 rounded-xl font-bold text-xs" onclick="acceptFriend(${user.id}); event.stopPropagation()">Annehmen</button>`;
         if (user.status === 'accepted') return '<span class="text-primary font-bold text-xs uppercase italic flex items-center gap-1"><span class="material-symbols-outlined text-sm">check_circle</span>Friends</span>';
-        return `<button class="bg-gray-200 dark:bg-gray-800 text-black dark:text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-primary hover:text-black transition-all" onclick="addFriend(${user.id})">Hinzufügen</button>`;
+        if (user.status === 'self') return '<span class="text-xs font-bold text-gray-500 uppercase">Du</span>';
+        return `<button class="bg-gray-200 dark:bg-gray-800 text-black dark:text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-primary hover:text-black transition-all" onclick="addFriend(${user.id}); event.stopPropagation()">Hinzufügen</button>`;
     }
 
     async function addFriend(id) {
@@ -182,6 +211,11 @@
         friends.forEach(f => {
             const div = document.createElement('div');
             div.className = "group flex items-center gap-4 p-3 rounded-2xl hover:bg-surface-light dark:hover:bg-surface-dark transition-colors duration-200 cursor-pointer";
+            div.onclick = (e) => {
+                // Prevent click if clicking remove btn
+                if (e.target.closest('button')) return;
+                openUserProfile(f.id);
+            };
             div.innerHTML = `
                 <div class="relative shrink-0">
                     <div class="h-14 w-14 rounded-full bg-cover bg-center border-2 border-surface-light dark:border-surface-dark ring-2 ring-primary/20 shadow-sm" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuApRHDuqsN9lU_grCG2NqqQGQkcIUWj3XgANcc59qAchrDKPYzPyTbOFZFAJtT5ieyU-3566K_oivBUi2yz8BiBzELgjMeQjU3akmPk3KW6E_IwFSLwCEvtQ1V2YcpZXwztRdButPlhe7txtQaa6uwu8HXR1GBZ2Z5Ju9yCgRujuzLTtBoKMoGqwiXXPN0WAVKtxAKovqmcOXzBohCWXhrlU9AK0Zl0OD3tcwtVJIw3HTDtC8NHUqo_67g4YzD1CQUL_XEggTDHVwyp');"></div>
@@ -213,6 +247,118 @@
         });
         loadFriends();
     }
+
+
+    /* USER PROFILE LOGIC */
+    const profileModal = document.getElementById('user-profile-modal');
+    const profileInner = document.getElementById('profile-card-inner');
+
+    async function openUserProfile(userId) {
+        // Show modal with loading state
+        profileModal.classList.remove('hidden');
+        requestAnimationFrame(() => {
+            profileInner.classList.remove('translate-y-full');
+        });
+
+        // Load content
+        const content = document.getElementById('user-profile-content');
+        content.innerHTML = '<div class="h-64 flex items-center justify-center"><span class="loader"></span></div>';
+
+        const res = await fetch(`/api/user_details/${userId}`);
+        const user = await res.json();
+
+        let actionBtn = '';
+        if (user.status === 'accepted') {
+            actionBtn = `<button class="btn btn-following">
+                <span class="material-symbols-outlined" style="font-size: 20px;">check</span>
+                Freunde
+            </button>`;
+        } else if (user.status === 'none') {
+            actionBtn = `<button class="btn btn-following" onclick="addFriend(${user.id}); closeUserProfile()">
+                <span class="material-symbols-outlined" style="font-size: 20px;">person_add</span>
+                Hinzufügen
+            </button>`;
+        } else {
+            actionBtn = `<button class="btn btn-following opacity-50 cursor-not-allowed">
+                ${user.status}
+            </button>`;
+        }
+
+        // Generate Achievement HTML
+        let achHtml = '';
+        if (user.achievements && user.achievements.length > 0) {
+            user.achievements.forEach(ach => {
+                achHtml += `
+            <div class="achievement-item">
+                <div class="achievement-icon-circle bg-surface-light dark:bg-surface-dark border-2 border-primary/30 flex items-center justify-center text-primary shadow-lg shadow-primary/20">
+                    <span class="material-symbols-outlined text-3xl">${ach.icon}</span>
+                </div>
+                <p class="achievement-title mt-2">${ach.title}</p>
+            </div>`;
+            });
+        } else {
+            achHtml = '<p class="text-gray-500 text-sm italic px-6">Noch keine Erfolge sichtbar.</p>';
+        }
+
+        content.innerHTML = `
+    <!-- Header Section -->
+    <div class="header pt-12 pb-4 px-6 text-center relative">
+        <div class="avatar-container mb-4 relative inline-block">
+            <div class="avatar size-28 rounded-full border-4 border-surface-light dark:border-surface-dark shadow-xl bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCZOmWKxRzaRmyY0xH7bdkNI_s976HhRSgOd_xfD3eL-VrqoKveFiGHXrhnw0RC7ldPOPLFae4wRn4iRyQ3po4Jx1q4VG1JIbj4YMt3j1K9eTO2zbMCtldQ9796ZSOMuO7fUBV_HJ56wurEUvyP_QIN8V5Z0MT786NsInI1F7RlJUjL8IBuoTD__6shSragj0WcUjZhOxN1wtWxQRb7k1xldLoJ8nzciIHZbRpY0MmBDcbjWnQ7fegRyDMVlKTavBhBMIC9fpiVa4nf");'></div>
+            <div class="absolute bottom-1 right-1 bg-background-light dark:bg-background-dark rounded-full p-1 ring-4 ring-background-light dark:ring-background-dark">
+                <div class="verified-icon bg-primary text-black size-6 rounded-full flex items-center justify-center shadow-sm">
+                    <span class="material-symbols-outlined text-sm font-bold">check</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex flex-col items-center">
+            <h2 class="name text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-1">${user.username}</h2>
+            <p class="handle text-slate-500 font-bold text-sm bg-surface-light dark:bg-surface-dark px-3 py-1 rounded-full mt-2 border border-black/5 dark:border-white/5">Mitglied seit ${user.join_year}</p>
+        </div>
+
+        <div class="action-buttons mt-6 w-full flex gap-3">
+            ${actionBtn}
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid px-6 py-2 grid grid-cols-2 gap-4">
+        <!-- Streak Card -->
+        <div class="stat-card bg-surface-light dark:bg-surface-dark p-5 rounded-3xl flex flex-col items-center justify-center border border-gray-200 dark:border-gray-800 shadow-sm relative overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-tr from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <span class="material-symbols-outlined text-orange-500 text-4xl mb-2 drop-shadow-sm">local_fire_department</span>
+            <span class="stat-value text-3xl font-black dark:text-white leading-none">${user.streak}</span>
+            <span class="stat-label text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mt-1">Streak</span>
+        </div>
+        <!-- Achievements Count Card -->
+        <div class="stat-card bg-surface-light dark:bg-surface-dark p-5 rounded-3xl flex flex-col items-center justify-center border border-gray-200 dark:border-gray-800 shadow-sm relative overflow-hidden group">
+             <div class="absolute inset-0 bg-gradient-to-tr from-yellow-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <span class="material-symbols-outlined text-yellow-500 text-4xl mb-2 drop-shadow-sm">military_tech</span>
+            <span class="stat-value text-3xl font-black dark:text-white leading-none">${user.achievement_count}</span>
+            <span class="stat-label text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mt-1">Erfolge</span>
+        </div>
+    </div>
+
+    <!-- Achievements Section -->
+    <div class="achievements-section pt-4 pb-12">
+        <div class="flex items-center justify-between px-6 mb-4">
+            <h3 class="section-title text-lg font-extrabold dark:text-white">Letzte Erfolge</h3>
+            <span class="text-xs font-bold text-primary uppercase tracking-wider">Alle sehen</span>
+        </div>
+        <div class="horizontal-scroll flex gap-4 overflow-x-auto px-6 pb-4 no-scrollbar -mx-2 items-start h-32">
+            ${achHtml}
+        </div>
+    </div>
+        `;
+    }
+
+    function closeUserProfile() {
+        profileInner.classList.add('translate-y-full');
+        setTimeout(() => {
+            profileModal.classList.add('hidden');
+        }, 300);
+    }
 </script>
 
 <style>
@@ -222,6 +368,31 @@
 
     input::placeholder {
         opacity: 0.5;
+    }
+
+    .btn-following {
+        flex: 1;
+        height: 2.75rem;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+        background-color: rgba(19, 236, 91, 0.2);
+        color: #0f172a;
+    }
+
+    .dark .btn-following {
+        color: white;
+    }
+
+    .btn-following:hover {
+        background-color: rgba(19, 236, 91, 0.3);
     }
 </style>
 {% endblock %}
