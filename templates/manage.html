@@ -1,0 +1,212 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header" style="justify-content: space-between;">
+        <span class="card-title">Alle Gewohnheiten</span>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary"
+            style="text-decoration: none; font-size: 0.9rem;">Zurück</a>
+    </div>
+
+    <div class="input-group" style="margin-bottom: 1rem;">
+        <input type="text" id="habit-search" placeholder="Suche..." onkeyup="filterHabits()">
+    </div>
+
+    <div class="habit-list" id="manage-habit-list">
+        {% for habit in habits %}
+        <div class="habit-item" data-text="{{ habit.text.lower() }}">
+            <div class="habit-content">
+                <span class="habit-text">{{ habit.text }}</span>
+                <div style="font-size: 0.8rem; color: var(--subtext-color);">
+                    {{ habit.target }}x
+                    {% if habit.frequency == 'daily' %}täglich{% else %}an best. Tagen{% endif %}
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-secondary"
+                    onclick="openEditModal({{ habit.id }}, '{{ habit.text }}', {{ habit.target }}, '{{ habit.frequency }}', '{{ habit.days }}')"
+                    style="padding: 0.5rem;">✎</button>
+                <button class="delete-btn" onclick="deleteHabitManage({{ habit.id }})">✕</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="edit-habit-modal" class="modal">
+    <div class="card modal-content">
+        <h3>Bearbeiten</h3>
+        <input type="hidden" id="edit-habit-id">
+
+        <label class="input-label">Name</label>
+        <input type="text" id="edit-habit-text">
+
+        <label class="input-label">Ziel (pro Tag)</label>
+        <input type="number" id="edit-habit-target" min="1">
+
+        <label class="input-label">Häufigkeit</label>
+        <select id="edit-habit-freq" onchange="toggleEditDaysInput()"
+            style="width: 100%; padding: 0.8rem; border-radius: 12px; background: rgba(0,0,0,0.2); color: white; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 1rem;">
+            <option value="daily">Jeden Tag</option>
+            <option value="specific">Bestimmte Tage</option>
+        </select>
+
+        <div id="edit-days-selector" style="display: none; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+            <div class="day-check" onclick="toggleEditDay(0)" id="eday-0">Mo</div>
+            <div class="day-check" onclick="toggleEditDay(1)" id="eday-1">Di</div>
+            <div class="day-check" onclick="toggleEditDay(2)" id="eday-2">Mi</div>
+            <div class="day-check" onclick="toggleEditDay(3)" id="eday-3">Do</div>
+            <div class="day-check" onclick="toggleEditDay(4)" id="eday-4">Fr</div>
+            <div class="day-check" onclick="toggleEditDay(5)" id="eday-5">Sa</div>
+            <div class="day-check" onclick="toggleEditDay(6)" id="eday-6">So</div>
+        </div>
+
+        <button class="btn" onclick="saveHabitEdit()" style="width: 100%;">Speichern</button>
+    </div>
+</div>
+
+<style>
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 100;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+        width: 90%;
+        max-width: 320px;
+    }
+
+    .day-check {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        cursor: pointer;
+    }
+
+    .day-check.selected {
+        background: var(--primary-color);
+        color: black;
+    }
+</style>
+
+<script>
+    let editSelectedDays = [];
+
+    function filterHabits() {
+        const query = document.getElementById('habit-search').value.toLowerCase();
+        const items = document.querySelectorAll('#manage-habit-list .habit-item');
+        items.forEach(item => {
+            const text = item.getAttribute('data-text');
+            if (text.includes(query)) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    function openEditModal(id, text, target, freq, daysStr) {
+        document.getElementById('edit-habit-id').value = id;
+        document.getElementById('edit-habit-text').value = text;
+        document.getElementById('edit-habit-target').value = target;
+        document.getElementById('edit-habit-freq').value = freq;
+
+        // Parse days
+        editSelectedDays = [];
+        document.querySelectorAll('#edit-days-selector .day-check').forEach(el => el.classList.remove('selected'));
+
+        if (freq === 'specific') {
+            const days = daysStr.split(',').map(Number);
+            days.forEach(d => {
+                editSelectedDays.push(d);
+                const el = document.getElementById(`eday-${d}`);
+                if (el) el.classList.add('selected');
+            });
+        }
+
+        toggleEditDaysInput();
+        document.getElementById('edit-habit-modal').style.display = 'flex';
+    }
+
+    function toggleEditDaysInput() {
+        const freq = document.getElementById('edit-habit-freq').value;
+        const selector = document.getElementById('edit-days-selector');
+        selector.style.display = freq === 'specific' ? 'flex' : 'none';
+    }
+
+    function toggleEditDay(dayIdx) {
+        const el = document.getElementById(`eday-${dayIdx}`);
+        if (editSelectedDays.includes(dayIdx)) {
+            editSelectedDays = editSelectedDays.filter(d => d !== dayIdx);
+            el.classList.remove('selected');
+        } else {
+            editSelectedDays.push(dayIdx);
+            el.classList.add('selected');
+        }
+    }
+
+    async function saveHabitEdit() {
+        const id = document.getElementById('edit-habit-id').value;
+        const text = document.getElementById('edit-habit-text').value;
+        const target = document.getElementById('edit-habit-target').value;
+        const freq = document.getElementById('edit-habit-freq').value;
+
+        const payload = {
+            id: id,
+            text: text,
+            target: parseInt(target),
+            frequency: freq,
+            days: editSelectedDays
+        };
+
+        const res = await fetch('/api/edit_habit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            location.reload();
+        } else {
+            alert('Fehler beim Speichern');
+        }
+    }
+
+    async function deleteHabitManage(id) {
+        if (!confirm('Wirklich löschen?')) return;
+
+        const res = await fetch('/api/delete_habit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id })
+        });
+
+        if (res.ok) {
+            location.reload();
+        }
+    }
+
+    // Close modal on outside click
+    window.onclick = function (event) {
+        const m = document.getElementById('edit-habit-modal');
+        if (event.target === m) {
+            m.style.display = "none";
+        }
+    }
+</script>
+{% endblock %}

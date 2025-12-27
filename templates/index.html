@@ -1,0 +1,148 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<!-- Streak Section -->
+<div class="streak-card">
+    <div class="streak-info">
+        <span class="streak-label">Aktueller Streak</span>
+        <span class="streak-count" id="streak-count">{{ streak }}</span>
+    </div>
+    <div class="fire-icon">🔥</div>
+</div>
+
+<div class="modules">
+    <!-- Habits Section -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">✅ Daily Tasks</span>
+            <!-- New Add Button triggers Modal -->
+            <button class="btn btn-secondary" onclick="openAddHabitModal()" style="padding: 0.5rem;">
+                <span>+ Neu</span>
+            </button>
+        </div>
+
+        <div class="habit-list" id="habit-list"></div>
+    </div>
+</div>
+
+<!-- Modal for Adding Habit -->
+<div id="add-habit-modal" class="modal">
+    <div class="card modal-content" style="max-height: 90vh; overflow-y: auto;">
+        <h3>Neue Gewohnheit</h3>
+
+        <label class="input-label">Name</label>
+        <input type="text" id="new-habit-text" placeholder="z.B. Wasser trinken">
+
+        <label class="input-label">Wie oft?</label>
+        <input type="number" id="new-habit-target" value="1" min="1">
+
+        <label class="input-label">Intervall</label>
+        <select id="new-habit-freq" onchange="toggleDaysInput()"
+            style="width: 100%; padding: 0.8rem; border-radius: 12px; background: rgba(0,0,0,0.2); color: white; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 1rem;">
+            <option value="daily">Jeden Tag</option>
+            <option value="specific">Bestimmte Tage</option>
+            <option value="weekly_flex">1x pro Woche (Flexibel)</option>
+        </select>
+
+        <div id="days-selector" style="display: none; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+            <div class="day-check" onclick="toggleDay(0)" id="day-0">Mo</div>
+            <div class="day-check" onclick="toggleDay(1)" id="day-1">Di</div>
+            <div class="day-check" onclick="toggleDay(2)" id="day-2">Mi</div>
+            <div class="day-check" onclick="toggleDay(3)" id="day-3">Do</div>
+            <div class="day-check" onclick="toggleDay(4)" id="day-4">Fr</div>
+            <div class="day-check" onclick="toggleDay(5)" id="day-5">Sa</div>
+            <div class="day-check" onclick="toggleDay(6)" id="day-6">So</div>
+        </div>
+
+        <label class="input-label">Teilen mit Freunden</label>
+        <div id="friends-selector"
+            style="max-height: 100px; overflow-y: scroll; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 8px; margin-bottom: 1rem;">
+            <!-- Friends checkboxes injected here -->
+            <p style="font-size: 0.8rem; color: var(--subtext-color);">Lade Freunde...</p>
+        </div>
+
+        <button class="btn" onclick="submitNewHabit()" style="width: 100%;">Erstellen</button>
+    </div>
+</div>
+
+<!-- Modal for Habit Details -->
+<div id="habit-details-modal" class="modal">
+    <div class="card modal-content">
+        <h3 id="detail-title">Habit Name</h3>
+        <div style="margin: 1rem 0;">
+            <p style="color: var(--subtext-color);">Fortschritt heute:</p>
+            <div class="progress-container" style="height: 8px;">
+                <div class="progress-bar" id="detail-progress"></div>
+            </div>
+            <p id="detail-stats" style="text-align: right; font-size: 0.8rem;">0/1</p>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px; margin-bottom: 1rem;">
+            <p style="color: var(--subtext-color); font-size: 0.9rem;">Verlauf (Letzte 7 Tage)</p>
+            <div id="detail-history"
+                style="display: flex; gap: 0.2rem; margin-top: 0.5rem; height: 30px; align-items: flex-end;">
+                <!-- Hist bars injected here -->
+            </div>
+        </div>
+
+        <button class="btn btn-secondary" onclick="closeDetails()" style="width: 100%;">Schließen</button>
+    </div>
+</div>
+
+<style>
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 100;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+        width: 90%;
+        max-width: 320px;
+        animation: fadeInUp 0.3s ease;
+    }
+
+    .input-label {
+        display: block;
+        font-size: 0.9rem;
+        color: var(--subtext-color);
+        margin-bottom: 0.4rem;
+        margin-top: 0.8rem;
+    }
+
+    .day-check {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .day-check.selected {
+        background: var(--primary-color);
+        color: black;
+        font-weight: bold;
+    }
+</style>
+
+<script>
+    const INITIAL_STATE = {
+        habits: {{ habits | tojson }},
+    streak: { { streak } }
+        };
+</script>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% endblock %}

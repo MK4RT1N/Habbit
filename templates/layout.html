@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HabitFlow Tracker</title>
+    <meta name="description" content="Tracke deine Habits und Handyzeit.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#1e1e2e">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <h1>HabitFlow</h1>
+            <p style="color: var(--subtext-color);">Dein täglicher Begleiter</p>
+            {% if current_user.is_authenticated %}
+            <div style="position: absolute; top: 0; right: 0; display: flex; gap: 1rem;">
+                <a href="{{ url_for('friends_page') }}"
+                    style="font-size: 1.2rem; color: var(--text-color); text-decoration: none;" title="Freunde">👥</a>
+                <a href="{{ url_for('manage') }}"
+                    style="font-size: 1.2rem; color: var(--text-color); text-decoration: none;"
+                    title="Alle Gewohnheiten verwalten">⚙️</a>
+                <a href="{{ url_for('logout') }}"
+                    style="font-size: 0.9rem; color: var(--danger-color); text-decoration: none; align-self: center;">Logout</a>
+            </div>
+            {% endif %}
+        </header>
+
+        <!-- Flashed Messages -->
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div style="margin-bottom: 1rem; text-align: center; color: var(--secondary-color);">
+            {% for message in messages %}
+            <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+</body>
+
+</html>

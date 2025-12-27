@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  habitflow:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      # Map the database file to the host system
+      # Format: path_on_host:path_in_container
+      # This ensures 'habitflow_v3.db' is stored outside the container
+      # and survives updates/rebuilds.
+      - ./data:/app/data
+    environment:
+      - SQLALCHEMY_DATABASE_URI=sqlite:////app/data/habitflow_v3.db
+    restart: unless-stopped

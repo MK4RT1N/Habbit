@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="card" style="max-width: 400px; margin: 0 auto; width: 100%;">
+    <div class="card-header" style="justify-content: center;">
+        <h2 class="card-title" style="font-size: 1.5rem;">Registrieren</h2>
+    </div>
+    <form action="{{ url_for('register') }}" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div>
+            <label for="username" style="color: var(--subtext-color); font-size: 0.9rem;">Username</label>
+            <input type="text" id="username" name="username" required placeholder="Wähle einen Username">
+        </div>
+        <div>
+            <label for="password" style="color: var(--subtext-color); font-size: 0.9rem;">Passwort</label>
+            <input type="password" id="password" name="password" required placeholder="Wähle ein Passwort">
+        </div>
+        <button type="submit" class="btn" style="justify-content: center;">Registrieren</button>
+    </form>
+    <div style="margin-top: 1rem; text-align: center; font-size: 0.9rem;">
+        <a href="{{ url_for('login') }}" style="color: var(--secondary-color); text-decoration: none;">Bereits einen
+            Account? Login</a>
+    </div>
+</div>
+{% endblock %}
